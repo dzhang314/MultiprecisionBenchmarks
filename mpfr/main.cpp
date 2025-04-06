@@ -63,4 +63,4 @@ static void axpy_bench(benchmark::State &bs) {
     std::free(y);
 }
 
-BENCHMARK(axpy_bench)->RangeMultiplier(2)->Range(1L << 1, 1L << 28);
+BENCHMARK(axpy_bench)->RangeMultiplier(2)->Range(1L, 1L << 28);
