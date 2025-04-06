@@ -1,0 +1,6 @@
+-Weverything
+-Wno-c++98-compat
+-Wno-global-constructors
+-Wno-unsafe-buffer-usage
+-I/opt/homebrew/include
+-fopenmp
