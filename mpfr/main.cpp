@@ -8,14 +8,15 @@ static void axpy(mpfr_t *y, mpfr_t a, mpfr_t *x, std::size_t n,
                  mpfr_prec_t prec) {
 #pragma omp parallel
     {
+        void *temp_buffer = alloca(mpfr_custom_get_size(prec));
+        mpfr_custom_init(temp_buffer, prec);
         mpfr_t temp;
-        mpfr_init2(temp, prec);
+        mpfr_custom_init_set(temp, MPFR_REGULAR_KIND, 0, prec, temp_buffer);
 #pragma omp for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
-            mpfr_mul(temp, a, x[i], MPFR_RNDN);
-            mpfr_add(y[i], y[i], temp, MPFR_RNDN);
+            mpfr_mul(temp, a, x[i], MPFR_RNDF);
+            mpfr_add(y[i], y[i], temp, MPFR_RNDF);
         }
-        mpfr_clear(temp);
     }
 }
 
@@ -29,18 +30,18 @@ static void axpy_bench(benchmark::State &bs) {
 
     mpfr_t a;
     mpfr_init2(a, prec);
-    mpfr_set_d(a, 0.5, MPFR_RNDN);
+    mpfr_set_d(a, 0.5, MPFR_RNDF);
 
     mpfr_t *const x = new mpfr_t[n];
     for (std::size_t i = 0; i < n; ++i) { mpfr_init2(x[i], prec); }
     for (std::size_t i = 0; i < n; ++i) {
-        mpfr_set_d(x[i], static_cast<double>(i), MPFR_RNDN);
+        mpfr_set_d(x[i], static_cast<double>(i), MPFR_RNDF);
     }
 
     for (auto _ : bs) {
         bs.PauseTiming();
         for (std::size_t i = 0; i < n; ++i) {
-            mpfr_set_d(y[i], 2.0 * static_cast<double>(i), MPFR_RNDN);
+            mpfr_set_d(y[i], 2.0 * static_cast<double>(i), MPFR_RNDF);
         }
         bs.ResumeTiming();
         axpy(y, a, x, n, prec);
