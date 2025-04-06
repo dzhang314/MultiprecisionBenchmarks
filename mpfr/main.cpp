@@ -1,10 +1,8 @@
 #include <cassert>
 #include <cstddef>
-#include <cstdlib>
 
 #include <benchmark/benchmark.h>
 #include <mpfr.h>
-#include <omp.h>
 
 static void axpy(mpfr_t *y, mpfr_t a, mpfr_t *x, std::size_t n,
                  mpfr_prec_t prec) {
