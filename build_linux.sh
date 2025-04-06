@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -eux
+
 mkdir -p bin
 
 DIALECT_FLAGS="-std=c++17 -fopenmp -ffp-contract=off -fno-math-errno"

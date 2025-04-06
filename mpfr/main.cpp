@@ -1,4 +1,5 @@
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 
@@ -42,23 +43,23 @@ static void axpy_bench(benchmark::State &bs) {
     }
 
     for (auto _ : bs) {
-        bs.PauseTiming();
 #pragma omp parallel for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
             mpfr_set_d(y[i], 2.0 * static_cast<double>(i), MPFR_RNDF);
         }
-        bs.ResumeTiming();
+        const auto start = std::chrono::high_resolution_clock::now();
         axpy(y, a, x, n, prec);
-        bs.PauseTiming();
+        const auto stop = std::chrono::high_resolution_clock::now();
+        bs.SetIterationTime(
+            std::chrono::duration<double>(stop - start).count());
 #pragma omp parallel for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
             assert(mpfr_cmp_d(y[i], 2.5 * static_cast<double>(i)) == 0);
         }
-        bs.ResumeTiming();
     }
 
     bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
-    bs.SetItemsProcessed(static_cast<std::int64_t>(n));
+    bs.SetItemsProcessed(static_cast<std::int64_t>(n) * bs.iterations());
 
     for (std::size_t i = 0; i < n; ++i) { mpfr_clear(x[i]); }
     std::free(x);
@@ -70,8 +71,9 @@ static void axpy_bench(benchmark::State &bs) {
 }
 
 BENCHMARK(axpy_bench)
-    ->Repetitions(8)
+    ->UseManualTime()
+    ->Complexity(benchmark::oN)
+    ->Repetitions(3)
     ->RangeMultiplier(2)
-    ->Range(1L, 1L << 28)
-    ->UseRealTime()
+    ->Range(1L, 1L << 25)
     ->DisplayAggregatesOnly();

@@ -1,4 +1,5 @@
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 
@@ -26,29 +27,30 @@ static void axpy_bench(benchmark::State &bs) {
     for (std::size_t i = 0; i < n; ++i) { x[i] = static_cast<__float128>(i); }
 
     for (auto _ : bs) {
-        bs.PauseTiming();
 #pragma omp parallel for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
             y[i] = static_cast<__float128>(2.0) * static_cast<__float128>(i);
         }
-        bs.ResumeTiming();
+        const auto start = std::chrono::high_resolution_clock::now();
         axpy(y, a, x, n);
-        bs.PauseTiming();
+        const auto stop = std::chrono::high_resolution_clock::now();
+        bs.SetIterationTime(
+            std::chrono::duration<double>(stop - start).count());
 #pragma omp parallel for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
             assert(y[i] ==
                    static_cast<__float128>(2.5) * static_cast<__float128>(i));
         }
-        bs.ResumeTiming();
     }
 
     bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
-    bs.SetItemsProcessed(static_cast<std::int64_t>(n));
+    bs.SetItemsProcessed(static_cast<std::int64_t>(n) * bs.iterations());
 }
 
 BENCHMARK(axpy_bench)
-    ->Repetitions(8)
+    ->UseManualTime()
+    ->Complexity(benchmark::oN)
+    ->Repetitions(3)
     ->RangeMultiplier(2)
-    ->Range(1L, 1L << 28)
-    ->UseRealTime()
+    ->Range(1L, 1L << 25)
     ->DisplayAggregatesOnly();
