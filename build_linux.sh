@@ -33,3 +33,11 @@ g++-14 $DIALECT_FLAGS $GCC_WARNING_FLAGS $OPTIMIZATION_FLAGS \
 clang++-20 $DIALECT_FLAGS $CLANG_WARNING_FLAGS $OPTIMIZATION_FLAGS \
     mpfr/main.cpp -lmpfr -lbenchmark -lbenchmark_main \
     -o bin/MPFRBenchmarkClang
+
+g++-14 $DIALECT_FLAGS $GCC_WARNING_FLAGS $OPTIMIZATION_FLAGS \
+    -fwhole-program cln/main.cpp -lcln -lbenchmark -lbenchmark_main \
+    -o bin/CLNBenchmarkGCC
+
+clang++-20 $DIALECT_FLAGS $CLANG_WARNING_FLAGS $OPTIMIZATION_FLAGS \
+    cln/main.cpp -lcln -lbenchmark -lbenchmark_main \
+    -o bin/CLNBenchmarkClang

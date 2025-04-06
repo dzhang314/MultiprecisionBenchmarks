@@ -23,7 +23,7 @@ static void axpy(mpf_t *y, mpf_t a, const mpf_t *x, std::size_t n,
 static void axpy_bench(benchmark::State &bs) {
 
     const std::size_t n = static_cast<std::size_t>(bs.range(0));
-    constexpr mp_bitcnt_t prec = 104;
+    constexpr mp_bitcnt_t prec = 102;
 
     mpf_t *const y = static_cast<mpf_t *>(std::malloc(n * sizeof(mpf_t)));
     for (std::size_t i = 0; i < n; ++i) { mpf_init2(y[i], prec); }

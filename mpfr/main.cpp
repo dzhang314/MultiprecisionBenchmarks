@@ -24,7 +24,7 @@ static void axpy(mpfr_t *y, mpfr_t a, const mpfr_t *x, std::size_t n,
 static void axpy_bench(benchmark::State &bs) {
 
     const std::size_t n = static_cast<std::size_t>(bs.range(0));
-    constexpr mpfr_prec_t prec = 104;
+    constexpr mpfr_prec_t prec = 102;
 
     mpfr_t *const y = static_cast<mpfr_t *>(std::malloc(n * sizeof(mpfr_t)));
     for (std::size_t i = 0; i < n; ++i) { mpfr_init2(y[i], prec); }
