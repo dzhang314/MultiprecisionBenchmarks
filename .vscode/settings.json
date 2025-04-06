@@ -14,6 +14,7 @@
         "lgmp",
         "lmpfr",
         "mpfr",
+        "multifloats",
         "multiprecision",
         "quadmath",
         "RNDF",

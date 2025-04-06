@@ -76,3 +76,11 @@ clang++-20 $DIALECT_FLAGS $CLANG_WARNING_FLAGS $OPTIMIZATION_FLAGS \
     -isystem./include \
     campary/main.cpp -lbenchmark -lbenchmark_main \
     -o bin/CamparyBenchmarkClang
+
+g++-14 $DIALECT_FLAGS $GCC_WARNING_FLAGS $OPTIMIZATION_FLAGS \
+    -fwhole-program multifloats/main.cpp -lbenchmark -lbenchmark_main \
+    -o bin/MultiFloatsBenchmarkGCC
+
+clang++-20 $DIALECT_FLAGS $CLANG_WARNING_FLAGS $OPTIMIZATION_FLAGS \
+    multifloats/main.cpp -lbenchmark -lbenchmark_main \
+    -o bin/MultiFloatsBenchmarkClang
