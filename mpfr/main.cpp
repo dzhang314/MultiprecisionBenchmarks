@@ -40,12 +40,14 @@ static void axpy_bench(benchmark::State &bs) {
 
     for (auto _ : bs) {
         bs.PauseTiming();
+#pragma omp parallel for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
             mpfr_set_d(y[i], 2.0 * static_cast<double>(i), MPFR_RNDF);
         }
         bs.ResumeTiming();
         axpy(y, a, x, n, prec);
         bs.PauseTiming();
+#pragma omp parallel for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
             assert(mpfr_cmp_d(y[i], 2.5 * static_cast<double>(i)) == 0);
         }
@@ -61,4 +63,4 @@ static void axpy_bench(benchmark::State &bs) {
     std::free(y);
 }
 
-BENCHMARK(axpy_bench)->RangeMultiplier(2)->Range(1L << 10, 1L << 25);
+BENCHMARK(axpy_bench)->RangeMultiplier(2)->Range(1L << 1, 1L << 28);
