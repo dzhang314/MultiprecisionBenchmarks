@@ -56,5 +56,5 @@ BENCHMARK(axpy_bench)
     ->Complexity(benchmark::oN)
     ->Repetitions(3)
     ->RangeMultiplier(2)
-    ->Range(1L, 1L << 25)
+    ->Range(1L << 8, 1L << 24)
     ->DisplayAggregatesOnly();
