@@ -49,6 +49,9 @@ static void axpy_bench(benchmark::State &bs) {
 
     bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
     bs.SetItemsProcessed(static_cast<std::int64_t>(n) * bs.iterations());
+
+    std::free(x);
+    std::free(y);
 }
 
 BENCHMARK(axpy_bench)
