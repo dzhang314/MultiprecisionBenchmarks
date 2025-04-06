@@ -58,3 +58,21 @@ g++-14 $DIALECT_FLAGS $GCC_WARNING_FLAGS $OPTIMIZATION_FLAGS \
 clang++-20 $DIALECT_FLAGS $CLANG_WARNING_FLAGS $OPTIMIZATION_FLAGS \
     boost/main.cpp -lbenchmark -lbenchmark_main \
     -o bin/BoostBenchmarkClang
+
+g++-14 $DIALECT_FLAGS $GCC_WARNING_FLAGS $OPTIMIZATION_FLAGS \
+    -fwhole-program qd/main.cpp -lbenchmark -lbenchmark_main \
+    -o bin/QDBenchmarkGCC
+
+clang++-20 $DIALECT_FLAGS $CLANG_WARNING_FLAGS $OPTIMIZATION_FLAGS \
+    qd/main.cpp -lbenchmark -lbenchmark_main \
+    -o bin/QDBenchmarkClang
+
+g++-14 $DIALECT_FLAGS $GCC_WARNING_FLAGS $OPTIMIZATION_FLAGS \
+    -isystem./include \
+    -fwhole-program campary/main.cpp -lbenchmark -lbenchmark_main \
+    -o bin/CamparyBenchmarkGCC
+
+clang++-20 $DIALECT_FLAGS $CLANG_WARNING_FLAGS $OPTIMIZATION_FLAGS \
+    -isystem./include \
+    campary/main.cpp -lbenchmark -lbenchmark_main \
+    -o bin/CamparyBenchmarkClang

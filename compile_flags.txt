@@ -14,4 +14,5 @@
 -flto
 -fvisibility=hidden
 -fmerge-all-constants
+-isystem./include
 -isystem/opt/homebrew/include

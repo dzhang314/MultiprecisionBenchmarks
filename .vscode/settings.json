@@ -1,8 +1,36 @@
 {
     "cSpell.words": [
+        "alloca",
         "axpy",
+        "campary",
+        "errno",
+        "flto",
+        "fmerge",
+        "fopenmp",
+        "fvisibility",
+        "fwhole",
+        "lbenchmark",
+        "lcln",
+        "lgmp",
+        "lmpfr",
         "mpfr",
         "multiprecision",
-        "RNDF"
+        "quadmath",
+        "RNDF",
+        "Warith",
+        "Wcast",
+        "Wconversion",
+        "Wdisabled",
+        "Wdouble",
+        "Weverything",
+        "Wextra",
+        "Wformat",
+        "Winit",
+        "Winline",
+        "Wlogical",
+        "Wpedantic",
+        "Wshadow",
+        "Wstrict",
+        "Wuseless"
     ]
 }
