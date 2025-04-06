@@ -19,6 +19,14 @@ OPTIMIZATION_FLAGS="-O3 -march=native -flto \
 # g++-14 -Q $GCC_WARNING_FLAGS --help=c++,warning | grep -v "\[enabled\]"
 
 g++-14 $DIALECT_FLAGS $GCC_WARNING_FLAGS $OPTIMIZATION_FLAGS \
+    -fwhole-program gmp/main.cpp -lgmp -lbenchmark -lbenchmark_main \
+    -o bin/GMPBenchmarkGCC
+
+clang++-20 $DIALECT_FLAGS $CLANG_WARNING_FLAGS $OPTIMIZATION_FLAGS \
+    gmp/main.cpp -lgmp -lbenchmark -lbenchmark_main \
+    -o bin/GMPBenchmarkClang
+
+g++-14 $DIALECT_FLAGS $GCC_WARNING_FLAGS $OPTIMIZATION_FLAGS \
     -fwhole-program mpfr/main.cpp -lmpfr -lbenchmark -lbenchmark_main \
     -o bin/MPFRBenchmarkGCC
 
