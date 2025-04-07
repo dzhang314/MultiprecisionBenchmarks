@@ -44,6 +44,14 @@ clang++-20 $DIALECT_FLAGS $CLANG_WARNING_FLAGS $OPTIMIZATION_FLAGS \
     -o bin/CLNBenchmarkClang
 
 g++-14 $DIALECT_FLAGS $GCC_WARNING_FLAGS $OPTIMIZATION_FLAGS \
+    -fwhole-program flint/main.cpp -lflint -lbenchmark -lbenchmark_main \
+    -o bin/FLINTBenchmarkGCC
+
+clang++-20 $DIALECT_FLAGS $CLANG_WARNING_FLAGS $OPTIMIZATION_FLAGS \
+    flint/main.cpp -lflint -lbenchmark -lbenchmark_main \
+    -o bin/FLINTBenchmarkClang
+
+g++-14 $DIALECT_FLAGS $GCC_WARNING_FLAGS $OPTIMIZATION_FLAGS \
     -fwhole-program quadmath/main.cpp -lbenchmark -lbenchmark_main \
     -o bin/QuadMathBenchmarkGCC
 

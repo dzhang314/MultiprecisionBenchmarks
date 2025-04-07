@@ -11,6 +11,7 @@
         "fwhole",
         "lbenchmark",
         "lcln",
+        "lflint",
         "lgmp",
         "lmpfr",
         "mpfr",
