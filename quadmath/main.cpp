@@ -11,7 +11,7 @@ static void axpy(__float128 *y, __float128 a, const __float128 *x,
     for (std::size_t i = 0; i < n; ++i) { y[i] += a * x[i]; }
 }
 
-static void axpy_bench(benchmark::State &bs) {
+static void axpy_bench_2(benchmark::State &bs) {
 
     const std::size_t n = static_cast<std::size_t>(bs.range(0));
 
@@ -50,7 +50,7 @@ static void axpy_bench(benchmark::State &bs) {
     std::free(y);
 }
 
-BENCHMARK(axpy_bench)
+BENCHMARK(axpy_bench_2)
     ->UseManualTime()
     ->Complexity(benchmark::oN)
     ->Repetitions(3)
