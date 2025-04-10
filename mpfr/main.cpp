@@ -22,6 +22,54 @@ static void axpy(mpfr_t *y, mpfr_t a, const mpfr_t *x, std::size_t n,
     }
 }
 
+static void axpy_bench_1(benchmark::State &bs) {
+
+    const std::size_t n = static_cast<std::size_t>(bs.range(0));
+    constexpr mpfr_prec_t prec = 53;
+
+    mpfr_t *const y = static_cast<mpfr_t *>(std::malloc(n * sizeof(mpfr_t)));
+    for (std::size_t i = 0; i < n; ++i) { mpfr_init2(y[i], prec); }
+
+    mpfr_t a;
+    mpfr_init2(a, prec);
+    mpfr_set_d(a, 0.5, MPFR_RNDF);
+
+    mpfr_t *const x = static_cast<mpfr_t *>(std::malloc(n * sizeof(mpfr_t)));
+    for (std::size_t i = 0; i < n; ++i) { mpfr_init2(x[i], prec); }
+
+#pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < n; ++i) {
+        mpfr_set_d(x[i], static_cast<double>(i), MPFR_RNDF);
+    }
+
+    for (auto _ : bs) {
+#pragma omp parallel for schedule(static)
+        for (std::size_t i = 0; i < n; ++i) {
+            mpfr_set_d(y[i], 2.0 * static_cast<double>(i), MPFR_RNDF);
+        }
+        const auto start = std::chrono::high_resolution_clock::now();
+        axpy(y, a, x, n, prec);
+        const auto stop = std::chrono::high_resolution_clock::now();
+        bs.SetIterationTime(
+            std::chrono::duration<double>(stop - start).count());
+#pragma omp parallel for schedule(static)
+        for (std::size_t i = 0; i < n; ++i) {
+            assert(mpfr_cmp_d(y[i], 2.5 * static_cast<double>(i)) == 0);
+        }
+    }
+
+    bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
+    bs.SetItemsProcessed(static_cast<std::int64_t>(n) * bs.iterations());
+
+    for (std::size_t i = 0; i < n; ++i) { mpfr_clear(x[i]); }
+    std::free(x);
+
+    mpfr_clear(a);
+
+    for (std::size_t i = 0; i < n; ++i) { mpfr_clear(y[i]); }
+    std::free(y);
+}
+
 static void axpy_bench_2(benchmark::State &bs) {
 
     const std::size_t n = static_cast<std::size_t>(bs.range(0));
@@ -165,6 +213,14 @@ static void axpy_bench_4(benchmark::State &bs) {
     for (std::size_t i = 0; i < n; ++i) { mpfr_clear(y[i]); }
     std::free(y);
 }
+
+BENCHMARK(axpy_bench_1)
+    ->UseManualTime()
+    ->Complexity(benchmark::oN)
+    ->Repetitions(3)
+    ->RangeMultiplier(2)
+    ->Range(1L << 8, 1L << 24)
+    ->DisplayAggregatesOnly();
 
 BENCHMARK(axpy_bench_2)
     ->UseManualTime()

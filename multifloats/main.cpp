@@ -31,6 +31,24 @@ template <typename T> constexpr std::pair<T, T> two_prod(T a, T b) {
     return {p, e};
 }
 
+struct f64x1 {
+    double _limbs[1];
+    constexpr f64x1(double x) : _limbs{x} {}
+    constexpr bool operator==(double rhs) const { return _limbs[0] == rhs; }
+};
+
+constexpr f64x1 operator+(const f64x1 x, const f64x1 y) {
+    const double a = x._limbs[0];
+    const double b = y._limbs[0];
+    return f64x1{a + b};
+}
+
+constexpr f64x1 operator*(const f64x1 x, const f64x1 y) {
+    const double a = x._limbs[0];
+    const double b = y._limbs[0];
+    return f64x1{a * b};
+}
+
 struct f64x2 {
     double _limbs[2];
     constexpr f64x2(double x) : _limbs{x, 0.0} {}
@@ -221,6 +239,21 @@ split_range(std::size_t n, int num_threads, int thread_id) {
     return {first, last};
 }
 
+static void axpy(double *y0, f64x1 a, const double *x0, std::size_t n) {
+#pragma omp parallel
+    {
+        const std::pair<std::size_t, std::size_t> range =
+            split_range(n, omp_get_num_threads(), omp_get_thread_num());
+#pragma omp simd simdlen(8)
+        for (std::size_t i = range.first; i < range.second; ++i) {
+            const f64x1 y(y0[i]);
+            const f64x1 x(x0[i]);
+            const f64x1 z = y + a * x;
+            y0[i] = z._limbs[0];
+        }
+    }
+}
+
 static void axpy(double *y0, double *y1, f64x2 a, const double *x0,
                  const double *x1, std::size_t n) {
 #pragma omp parallel
@@ -274,6 +307,42 @@ static void axpy(double *y0, double *y1, double *y2, double *y3, f64x4 a,
             y3[i] = z._limbs[3];
         }
     }
+}
+
+static void axpy_bench_1(benchmark::State &bs) {
+
+    const std::size_t n = static_cast<std::size_t>(bs.range(0));
+
+    double *const y0 = static_cast<double *>(std::malloc(n * sizeof(double)));
+
+    const f64x1 a = static_cast<f64x1>(0.5);
+
+    double *const x0 = static_cast<double *>(std::malloc(n * sizeof(double)));
+
+#pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < n; ++i) { x0[i] = static_cast<double>(i); }
+
+    for (auto _ : bs) {
+#pragma omp parallel for schedule(static)
+        for (std::size_t i = 0; i < n; ++i) {
+            y0[i] = 2.0 * static_cast<double>(i);
+        }
+        const auto start = std::chrono::high_resolution_clock::now();
+        axpy(y0, a, x0, n);
+        const auto stop = std::chrono::high_resolution_clock::now();
+        bs.SetIterationTime(
+            std::chrono::duration<double>(stop - start).count());
+#pragma omp parallel for schedule(static)
+        for (std::size_t i = 0; i < n; ++i) {
+            assert(y0[i] == 2.5 * static_cast<double>(i));
+        }
+    }
+
+    bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
+    bs.SetItemsProcessed(static_cast<std::int64_t>(n) * bs.iterations());
+
+    std::free(x0);
+    std::free(y0);
 }
 
 static void axpy_bench_2(benchmark::State &bs) {
@@ -431,6 +500,14 @@ static void axpy_bench_4(benchmark::State &bs) {
     std::free(y1);
     std::free(y0);
 }
+
+BENCHMARK(axpy_bench_1)
+    ->UseManualTime()
+    ->Complexity(benchmark::oN)
+    ->Repetitions(3)
+    ->RangeMultiplier(2)
+    ->Range(1L << 8, 1L << 24)
+    ->DisplayAggregatesOnly();
 
 BENCHMARK(axpy_bench_2)
     ->UseManualTime()
