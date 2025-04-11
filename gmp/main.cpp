@@ -6,12 +6,12 @@
 #include <benchmark/benchmark.h>
 #include <gmp.h>
 
-static void axpy(mpf_t *y, mpf_t a, const mpf_t *x, std::size_t n,
-                 mp_bitcnt_t prec) {
+template <mp_bitcnt_t PRECISION>
+static void axpy(mpf_t *y, mpf_t a, const mpf_t *x, std::size_t n) {
 #pragma omp parallel
     {
         mpf_t temp;
-        mpf_init2(temp, prec);
+        mpf_init2(temp, PRECISION);
 #pragma omp for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
             mpf_mul(temp, a, x[i]);
@@ -47,7 +47,7 @@ static void axpy_bench(benchmark::State &bs) {
             mpf_set_d(y[i], 2.0 * static_cast<double>(i));
         }
         const auto start = std::chrono::high_resolution_clock::now();
-        axpy(y, a, x, n, PRECISION);
+        axpy<PRECISION>(y, a, x, n);
         const auto stop = std::chrono::high_resolution_clock::now();
         bs.SetIterationTime(
             std::chrono::duration<double>(stop - start).count());

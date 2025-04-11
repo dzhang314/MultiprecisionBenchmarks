@@ -16,3 +16,4 @@
 -fmerge-all-constants
 -isystem./include
 -isystem/opt/homebrew/include
+-I./common

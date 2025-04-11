@@ -6,14 +6,15 @@
 #include <benchmark/benchmark.h>
 #include <mpfr.h>
 
-static void axpy(mpfr_t *y, mpfr_t a, const mpfr_t *x, std::size_t n,
-                 mpfr_prec_t prec) {
+template <mpfr_prec_t PRECISION>
+static void axpy(mpfr_t *y, mpfr_t a, const mpfr_t *x, std::size_t n) {
 #pragma omp parallel
     {
-        void *temp_buffer = alloca(mpfr_custom_get_size(prec));
-        mpfr_custom_init(temp_buffer, prec);
+        void *temp_buffer = alloca(mpfr_custom_get_size(PRECISION));
+        mpfr_custom_init(temp_buffer, PRECISION);
         mpfr_t temp;
-        mpfr_custom_init_set(temp, MPFR_REGULAR_KIND, 0, prec, temp_buffer);
+        mpfr_custom_init_set(temp, MPFR_REGULAR_KIND, 0, PRECISION,
+                             temp_buffer);
 #pragma omp for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
             mpfr_mul(temp, a, x[i], MPFR_RNDF);
@@ -22,20 +23,20 @@ static void axpy(mpfr_t *y, mpfr_t a, const mpfr_t *x, std::size_t n,
     }
 }
 
-static void axpy_bench_1(benchmark::State &bs) {
+template <mpfr_prec_t PRECISION>
+static void axpy_bench(benchmark::State &bs) {
 
     const std::size_t n = static_cast<std::size_t>(bs.range(0));
-    constexpr mpfr_prec_t prec = 53;
 
     mpfr_t *const y = static_cast<mpfr_t *>(std::malloc(n * sizeof(mpfr_t)));
-    for (std::size_t i = 0; i < n; ++i) { mpfr_init2(y[i], prec); }
+    for (std::size_t i = 0; i < n; ++i) { mpfr_init2(y[i], PRECISION); }
 
     mpfr_t a;
-    mpfr_init2(a, prec);
+    mpfr_init2(a, PRECISION);
     mpfr_set_d(a, 0.5, MPFR_RNDF);
 
     mpfr_t *const x = static_cast<mpfr_t *>(std::malloc(n * sizeof(mpfr_t)));
-    for (std::size_t i = 0; i < n; ++i) { mpfr_init2(x[i], prec); }
+    for (std::size_t i = 0; i < n; ++i) { mpfr_init2(x[i], PRECISION); }
 
 #pragma omp parallel for schedule(static)
     for (std::size_t i = 0; i < n; ++i) {
@@ -48,7 +49,7 @@ static void axpy_bench_1(benchmark::State &bs) {
             mpfr_set_d(y[i], 2.0 * static_cast<double>(i), MPFR_RNDF);
         }
         const auto start = std::chrono::high_resolution_clock::now();
-        axpy(y, a, x, n, prec);
+        axpy<PRECISION>(y, a, x, n);
         const auto stop = std::chrono::high_resolution_clock::now();
         bs.SetIterationTime(
             std::chrono::duration<double>(stop - start).count());
@@ -70,149 +71,10 @@ static void axpy_bench_1(benchmark::State &bs) {
     std::free(y);
 }
 
-static void axpy_bench_2(benchmark::State &bs) {
-
-    const std::size_t n = static_cast<std::size_t>(bs.range(0));
-    constexpr mpfr_prec_t prec = 103;
-
-    mpfr_t *const y = static_cast<mpfr_t *>(std::malloc(n * sizeof(mpfr_t)));
-    for (std::size_t i = 0; i < n; ++i) { mpfr_init2(y[i], prec); }
-
-    mpfr_t a;
-    mpfr_init2(a, prec);
-    mpfr_set_d(a, 0.5, MPFR_RNDF);
-
-    mpfr_t *const x = static_cast<mpfr_t *>(std::malloc(n * sizeof(mpfr_t)));
-    for (std::size_t i = 0; i < n; ++i) { mpfr_init2(x[i], prec); }
-
-#pragma omp parallel for schedule(static)
-    for (std::size_t i = 0; i < n; ++i) {
-        mpfr_set_d(x[i], static_cast<double>(i), MPFR_RNDF);
-    }
-
-    for (auto _ : bs) {
-#pragma omp parallel for schedule(static)
-        for (std::size_t i = 0; i < n; ++i) {
-            mpfr_set_d(y[i], 2.0 * static_cast<double>(i), MPFR_RNDF);
-        }
-        const auto start = std::chrono::high_resolution_clock::now();
-        axpy(y, a, x, n, prec);
-        const auto stop = std::chrono::high_resolution_clock::now();
-        bs.SetIterationTime(
-            std::chrono::duration<double>(stop - start).count());
-#pragma omp parallel for schedule(static)
-        for (std::size_t i = 0; i < n; ++i) {
-            assert(mpfr_cmp_d(y[i], 2.5 * static_cast<double>(i)) == 0);
-        }
-    }
-
-    bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
-    bs.SetItemsProcessed(static_cast<std::int64_t>(n) * bs.iterations());
-
-    for (std::size_t i = 0; i < n; ++i) { mpfr_clear(x[i]); }
-    std::free(x);
-
-    mpfr_clear(a);
-
-    for (std::size_t i = 0; i < n; ++i) { mpfr_clear(y[i]); }
-    std::free(y);
-}
-
-static void axpy_bench_3(benchmark::State &bs) {
-
-    const std::size_t n = static_cast<std::size_t>(bs.range(0));
-    constexpr mpfr_prec_t prec = 156;
-
-    mpfr_t *const y = static_cast<mpfr_t *>(std::malloc(n * sizeof(mpfr_t)));
-    for (std::size_t i = 0; i < n; ++i) { mpfr_init2(y[i], prec); }
-
-    mpfr_t a;
-    mpfr_init2(a, prec);
-    mpfr_set_d(a, 0.5, MPFR_RNDF);
-
-    mpfr_t *const x = static_cast<mpfr_t *>(std::malloc(n * sizeof(mpfr_t)));
-    for (std::size_t i = 0; i < n; ++i) { mpfr_init2(x[i], prec); }
-
-#pragma omp parallel for schedule(static)
-    for (std::size_t i = 0; i < n; ++i) {
-        mpfr_set_d(x[i], static_cast<double>(i), MPFR_RNDF);
-    }
-
-    for (auto _ : bs) {
-#pragma omp parallel for schedule(static)
-        for (std::size_t i = 0; i < n; ++i) {
-            mpfr_set_d(y[i], 2.0 * static_cast<double>(i), MPFR_RNDF);
-        }
-        const auto start = std::chrono::high_resolution_clock::now();
-        axpy(y, a, x, n, prec);
-        const auto stop = std::chrono::high_resolution_clock::now();
-        bs.SetIterationTime(
-            std::chrono::duration<double>(stop - start).count());
-#pragma omp parallel for schedule(static)
-        for (std::size_t i = 0; i < n; ++i) {
-            assert(mpfr_cmp_d(y[i], 2.5 * static_cast<double>(i)) == 0);
-        }
-    }
-
-    bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
-    bs.SetItemsProcessed(static_cast<std::int64_t>(n) * bs.iterations());
-
-    for (std::size_t i = 0; i < n; ++i) { mpfr_clear(x[i]); }
-    std::free(x);
-
-    mpfr_clear(a);
-
-    for (std::size_t i = 0; i < n; ++i) { mpfr_clear(y[i]); }
-    std::free(y);
-}
-
-static void axpy_bench_4(benchmark::State &bs) {
-
-    const std::size_t n = static_cast<std::size_t>(bs.range(0));
-    constexpr mpfr_prec_t prec = 209;
-
-    mpfr_t *const y = static_cast<mpfr_t *>(std::malloc(n * sizeof(mpfr_t)));
-    for (std::size_t i = 0; i < n; ++i) { mpfr_init2(y[i], prec); }
-
-    mpfr_t a;
-    mpfr_init2(a, prec);
-    mpfr_set_d(a, 0.5, MPFR_RNDF);
-
-    mpfr_t *const x = static_cast<mpfr_t *>(std::malloc(n * sizeof(mpfr_t)));
-    for (std::size_t i = 0; i < n; ++i) { mpfr_init2(x[i], prec); }
-
-#pragma omp parallel for schedule(static)
-    for (std::size_t i = 0; i < n; ++i) {
-        mpfr_set_d(x[i], static_cast<double>(i), MPFR_RNDF);
-    }
-
-    for (auto _ : bs) {
-#pragma omp parallel for schedule(static)
-        for (std::size_t i = 0; i < n; ++i) {
-            mpfr_set_d(y[i], 2.0 * static_cast<double>(i), MPFR_RNDF);
-        }
-        const auto start = std::chrono::high_resolution_clock::now();
-        axpy(y, a, x, n, prec);
-        const auto stop = std::chrono::high_resolution_clock::now();
-        bs.SetIterationTime(
-            std::chrono::duration<double>(stop - start).count());
-#pragma omp parallel for schedule(static)
-        for (std::size_t i = 0; i < n; ++i) {
-            assert(mpfr_cmp_d(y[i], 2.5 * static_cast<double>(i)) == 0);
-        }
-    }
-
-    bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
-    bs.SetItemsProcessed(static_cast<std::int64_t>(n) * bs.iterations());
-
-    for (std::size_t i = 0; i < n; ++i) { mpfr_clear(x[i]); }
-    std::free(x);
-
-    mpfr_clear(a);
-
-    for (std::size_t i = 0; i < n; ++i) { mpfr_clear(y[i]); }
-    std::free(y);
-}
+static void axpy_bench_1(benchmark::State &bs) { axpy_bench<53>(bs); }
+static void axpy_bench_2(benchmark::State &bs) { axpy_bench<103>(bs); }
+static void axpy_bench_3(benchmark::State &bs) { axpy_bench<156>(bs); }
+static void axpy_bench_4(benchmark::State &bs) { axpy_bench<208>(bs); }
 
 BENCHMARK(axpy_bench_1)
     ->UseManualTime()
