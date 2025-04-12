@@ -27,10 +27,10 @@ static void dot(mpf_t result, const mpf_t *x, const mpf_t *y, std::size_t n) {
 #pragma omp parallel
     {
         mpf_t local_sum;
-        mpf_t temp;
         mpf_init2(local_sum, PRECISION);
-        mpf_init2(temp, PRECISION);
         mpf_set_d(local_sum, 0.0);
+        mpf_t temp;
+        mpf_init2(temp, PRECISION);
 #pragma omp for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
             mpf_mul(temp, x[i], y[i]);

@@ -13,6 +13,20 @@ static void axpy(cln::cl_F *y, cln::cl_F a, const cln::cl_F *x, std::size_t n) {
     for (std::size_t i = 0; i < n; ++i) { y[i] += a * x[i]; }
 }
 
+static cln::cl_F dot(const cln::cl_F *x, const cln::cl_F *y, std::size_t n,
+                     cln::float_format_t format) {
+    cln::cl_F result = cln::cl_float(0.0, format);
+#pragma omp parallel
+    {
+        cln::cl_F local_sum = cln::cl_float(0.0, format);
+#pragma omp for schedule(static)
+        for (std::size_t i = 0; i < n; ++i) { local_sum += x[i] * y[i]; }
+#pragma omp critical
+        { result += local_sum; }
+    }
+    return result;
+}
+
 static void axpy_bench(benchmark::State &bs, cln::float_format_t format) {
 
     const std::size_t n = static_cast<std::size_t>(bs.range(0));
@@ -47,6 +61,33 @@ static void axpy_bench(benchmark::State &bs, cln::float_format_t format) {
     bs.SetItemsProcessed(static_cast<std::int64_t>(n) * bs.iterations());
 }
 
+static void dot_bench(benchmark::State &bs, cln::float_format_t format) {
+
+    const std::size_t n = static_cast<std::size_t>(bs.range(0));
+    cln::default_float_format = format;
+
+    std::vector<cln::cl_F> x(n);
+
+#pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < n; ++i) { x[i] = cln::cl_float(1.5, format); }
+
+    std::vector<cln::cl_F> y(n);
+#pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < n; ++i) { y[i] = cln::cl_float(2.5, format); }
+
+    for (auto _ : bs) {
+        const auto start = std::chrono::high_resolution_clock::now();
+        const cln::cl_F result = dot(x.data(), y.data(), n, format);
+        const auto stop = std::chrono::high_resolution_clock::now();
+        bs.SetIterationTime(
+            std::chrono::duration<double>(stop - start).count());
+        assert(result == 3.75 * static_cast<double>(n));
+    }
+
+    bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
+    bs.SetItemsProcessed(static_cast<std::int64_t>(n) * bs.iterations());
+}
+
 static void axpy_bench_1(benchmark::State &bs) {
     axpy_bench(bs, cln::float_format(14));
 }
@@ -58,6 +99,19 @@ static void axpy_bench_3(benchmark::State &bs) {
 }
 static void axpy_bench_4(benchmark::State &bs) {
     axpy_bench(bs, cln::float_format(61));
+}
+
+static void dot_bench_1(benchmark::State &bs) {
+    dot_bench(bs, cln::float_format(14));
+}
+static void dot_bench_2(benchmark::State &bs) {
+    dot_bench(bs, cln::float_format(30));
+}
+static void dot_bench_3(benchmark::State &bs) {
+    dot_bench(bs, cln::float_format(45));
+}
+static void dot_bench_4(benchmark::State &bs) {
+    dot_bench(bs, cln::float_format(61));
 }
 
 BENCHMARK(axpy_bench_1)
@@ -85,6 +139,38 @@ BENCHMARK(axpy_bench_3)
     ->DisplayAggregatesOnly();
 
 BENCHMARK(axpy_bench_4)
+    ->UseManualTime()
+    ->Complexity(benchmark::oN)
+    ->Repetitions(3)
+    ->RangeMultiplier(2)
+    ->Range(1L << 8, 1L << 24)
+    ->DisplayAggregatesOnly();
+
+BENCHMARK(dot_bench_1)
+    ->UseManualTime()
+    ->Complexity(benchmark::oN)
+    ->Repetitions(3)
+    ->RangeMultiplier(2)
+    ->Range(1L << 8, 1L << 24)
+    ->DisplayAggregatesOnly();
+
+BENCHMARK(dot_bench_2)
+    ->UseManualTime()
+    ->Complexity(benchmark::oN)
+    ->Repetitions(3)
+    ->RangeMultiplier(2)
+    ->Range(1L << 8, 1L << 24)
+    ->DisplayAggregatesOnly();
+
+BENCHMARK(dot_bench_3)
+    ->UseManualTime()
+    ->Complexity(benchmark::oN)
+    ->Repetitions(3)
+    ->RangeMultiplier(2)
+    ->Range(1L << 8, 1L << 24)
+    ->DisplayAggregatesOnly();
+
+BENCHMARK(dot_bench_4)
     ->UseManualTime()
     ->Complexity(benchmark::oN)
     ->Repetitions(3)

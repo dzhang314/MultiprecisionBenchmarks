@@ -28,10 +28,10 @@ static void dot(mpfr_t result, const mpfr_t *x, const mpfr_t *y,
 #pragma omp parallel
     {
         mpfr_t local_sum;
-        mpfr_t temp;
         mpfr_init2(local_sum, PRECISION);
-        mpfr_init2(temp, PRECISION);
         mpfr_set_zero(local_sum, +1);
+        mpfr_t temp;
+        mpfr_init2(temp, PRECISION);
 #pragma omp for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
             mpfr_mul(temp, x[i], y[i], MPFR_RNDF);
@@ -127,11 +127,11 @@ static void dot_bench(benchmark::State &bs) {
 
     mpfr_clear(result);
 
-    for (std::size_t i = 0; i < n; ++i) { mpfr_clear(x[i]); }
-    std::free(x);
-
     for (std::size_t i = 0; i < n; ++i) { mpfr_clear(y[i]); }
     std::free(y);
+
+    for (std::size_t i = 0; i < n; ++i) { mpfr_clear(x[i]); }
+    std::free(x);
 }
 
 static void axpy_bench_1(benchmark::State &bs) { axpy_bench<53>(bs); }
