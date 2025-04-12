@@ -19,6 +19,7 @@
         "multiprecision",
         "quadmath",
         "RNDF",
+        "simdlen",
         "Warith",
         "Wcast",
         "Wconversion",
