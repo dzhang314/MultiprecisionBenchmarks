@@ -103,10 +103,10 @@ static f64x1 dot(const double *x0, const double *y0, std::size_t n) {
         for (std::size_t i = range.first; i < range.second; ++i) {
             const f64x1 x(x0[i]);
             const f64x1 y(y0[i]);
-            local_sum = local_sum + x * y;
+            local_sum += x * y;
         }
 #pragma omp critical
-        { result = result + local_sum; }
+        { result += local_sum; }
     }
     return result;
 }
@@ -123,10 +123,10 @@ static f64x2 dot(const double *x0, const double *x1, const double *y0,
         for (std::size_t i = range.first; i < range.second; ++i) {
             const f64x2 x(x0[i], x1[i]);
             const f64x2 y(y0[i], y1[i]);
-            local_sum = local_sum + x * y;
+            local_sum += x * y;
         }
 #pragma omp critical
-        { result = result + local_sum; }
+        { result += local_sum; }
     }
     return result;
 }
@@ -144,10 +144,10 @@ static f64x3 dot(const double *x0, const double *x1, const double *x2,
         for (std::size_t i = range.first; i < range.second; ++i) {
             const f64x3 x(x0[i], x1[i], x2[i]);
             const f64x3 y(y0[i], y1[i], y2[i]);
-            local_sum = local_sum + x * y;
+            local_sum += x * y;
         }
 #pragma omp critical
-        { result = result + local_sum; }
+        { result += local_sum; }
     }
     return result;
 }
@@ -165,10 +165,10 @@ static f64x4 dot(const double *x0, const double *x1, const double *x2,
         for (std::size_t i = range.first; i < range.second; ++i) {
             const f64x4 x(x0[i], x1[i], x2[i], x3[i]);
             const f64x4 y(y0[i], y1[i], y2[i], y3[i]);
-            local_sum = local_sum + x * y;
+            local_sum += x * y;
         }
 #pragma omp critical
-        { result = result + local_sum; }
+        { result += local_sum; }
     }
     return result;
 }

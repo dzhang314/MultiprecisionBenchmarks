@@ -16,7 +16,7 @@ static inline T dot(const T *x, const T *y, std::size_t n) {
     T result = static_cast<T>(0.0);
 #pragma omp parallel
     {
-        T local_sum = static_cast<T>(0);
+        T local_sum = static_cast<T>(0.0);
 #pragma omp for schedule(static)
         for (std::size_t i = 0; i < n; ++i) { local_sum += x[i] * y[i]; }
 #pragma omp critical
@@ -80,7 +80,7 @@ static inline void dot_bench(benchmark::State &bs) {
 
     for (auto _ : bs) {
         const auto start = std::chrono::high_resolution_clock::now();
-        const T result = dot(result, x, y, n);
+        const T result = dot(x, y, n);
         const auto stop = std::chrono::high_resolution_clock::now();
         bs.SetIterationTime(
             std::chrono::duration<double>(stop - start).count());

@@ -9,6 +9,7 @@
         "fopenmp",
         "fvisibility",
         "fwhole",
+        "isystem",
         "lbenchmark",
         "lcln",
         "lflint",

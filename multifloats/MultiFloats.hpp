@@ -42,10 +42,22 @@ constexpr f64x1 operator+(const f64x1 x, const f64x1 y) {
     return f64x1{a + b};
 }
 
+constexpr f64x1 &operator+=(f64x1 &x, const f64x1 y) {
+    x = x + y;
+    return x;
+}
+
+#pragma omp declare reduction(+ : f64x1 : omp_out += omp_in)
+
 constexpr f64x1 operator*(const f64x1 x, const f64x1 y) {
     const double a = x._limbs[0];
     const double b = y._limbs[0];
     return f64x1{a * b};
+}
+
+constexpr f64x1 &operator*=(f64x1 &x, const f64x1 y) {
+    x = x * y;
+    return x;
 }
 
 struct f64x2 {
@@ -72,6 +84,13 @@ constexpr f64x2 operator+(const f64x2 x, const f64x2 y) {
     return f64x2{a4, b4};
 }
 
+constexpr f64x2 &operator+=(f64x2 &x, const f64x2 y) {
+    x = x + y;
+    return x;
+}
+
+#pragma omp declare reduction(+ : f64x2 : omp_out += omp_in)
+
 constexpr f64x2 operator*(const f64x2 x, const f64x2 y) {
     const auto [a, b] = two_prod(x._limbs[0], y._limbs[0]);
     const double c = x._limbs[0] * y._limbs[1];
@@ -80,6 +99,11 @@ constexpr f64x2 operator*(const f64x2 x, const f64x2 y) {
     const double b2 = b + c1;
     const auto [a3, b3] = fast_two_sum(a, b2);
     return f64x2{a3, b3};
+}
+
+constexpr f64x2 &operator*=(f64x2 &x, const f64x2 y) {
+    x = x * y;
+    return x;
 }
 
 struct f64x3 {
@@ -116,6 +140,13 @@ constexpr f64x3 operator+(const f64x3 x, const f64x3 y) {
     return f64x3{a7, b8, c8};
 }
 
+constexpr f64x3 &operator+=(f64x3 &x, const f64x3 y) {
+    x = x + y;
+    return x;
+}
+
+#pragma omp declare reduction(+ : f64x3 : omp_out += omp_in)
+
 constexpr f64x3 operator*(const f64x3 x, const f64x3 y) {
     const auto [a, b] = two_prod(x._limbs[0], y._limbs[0]);
     const auto [c, e] = two_prod(x._limbs[0], y._limbs[1]);
@@ -136,6 +167,11 @@ constexpr f64x3 operator*(const f64x3 x, const f64x3 y) {
     const auto [a6, b6] = fast_two_sum(a3, b5);
     const auto [b7, c7] = fast_two_sum(b6, c5);
     return f64x3{a6, b7, c7};
+}
+
+constexpr f64x3 &operator*=(f64x3 &x, const f64x3 y) {
+    x = x * y;
+    return x;
 }
 
 struct f64x4 {
@@ -188,6 +224,13 @@ constexpr f64x4 operator+(const f64x4 x, const f64x4 y) {
     return f64x4{a10, b11, c12, d12};
 }
 
+constexpr f64x4 &operator+=(f64x4 &x, const f64x4 y) {
+    x = x + y;
+    return x;
+}
+
+#pragma omp declare reduction(+ : f64x4 : omp_out += omp_in)
+
 constexpr f64x4 operator*(const f64x4 x, const f64x4 y) {
     const auto [a, b] = two_prod(x._limbs[0], y._limbs[0]);
     const auto [c, e] = two_prod(x._limbs[0], y._limbs[1]);
@@ -227,6 +270,11 @@ constexpr f64x4 operator*(const f64x4 x, const f64x4 y) {
     const auto [b9, c9] = two_sum(b8, c8);
     const auto [c10, d10] = fast_two_sum(c9, d8);
     return f64x4{a8, b9, c10, d10};
+}
+
+constexpr f64x4 &operator*=(f64x4 &x, const f64x4 y) {
+    x = x * y;
+    return x;
 }
 
 #endif // MULTIFLOATS_HPP_INCLUDED
