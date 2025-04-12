@@ -96,17 +96,24 @@ static f64x1 dot(const double *x0, const double *y0, std::size_t n) {
     f64x1 result = 0.0;
 #pragma omp parallel
     {
-        f64x1 local_sum = 0.0;
+        f64x1 scalar_sum = 0.0;
+        v8f64x1 vector_sum = 0.0;
         const std::pair<std::size_t, std::size_t> range =
             split_range(n, omp_get_num_threads(), omp_get_thread_num());
-#pragma omp simd simdlen(8) reduction(+ : local_sum)
-        for (std::size_t i = range.first; i < range.second; ++i) {
+        std::size_t i = range.first;
+        for (; i + 8 <= range.second; i += 8) {
+            const v8f64x1 x(_mm512_loadu_pd(x0 + i));
+            const v8f64x1 y(_mm512_loadu_pd(y0 + i));
+            vector_sum += x * y;
+        }
+        for (; i < range.second; ++i) {
             const f64x1 x(x0[i]);
             const f64x1 y(y0[i]);
-            local_sum += x * y;
+            scalar_sum += x * y;
         }
+        scalar_sum += vsum(vector_sum);
 #pragma omp critical
-        { result += local_sum; }
+        { result += scalar_sum; }
     }
     return result;
 }
@@ -116,17 +123,24 @@ static f64x2 dot(const double *x0, const double *x1, const double *y0,
     f64x2 result = 0.0;
 #pragma omp parallel
     {
-        f64x2 local_sum = 0.0;
+        f64x2 scalar_sum = 0.0;
+        v8f64x2 vector_sum = 0.0;
         const std::pair<std::size_t, std::size_t> range =
             split_range(n, omp_get_num_threads(), omp_get_thread_num());
-#pragma omp simd simdlen(8) reduction(+ : local_sum)
-        for (std::size_t i = range.first; i < range.second; ++i) {
+        std::size_t i = range.first;
+        for (; i + 8 <= range.second; i += 8) {
+            const v8f64x2 x(_mm512_loadu_pd(x0 + i), _mm512_loadu_pd(x1 + i));
+            const v8f64x2 y(_mm512_loadu_pd(y0 + i), _mm512_loadu_pd(y1 + i));
+            vector_sum += x * y;
+        }
+        for (; i < range.second; ++i) {
             const f64x2 x(x0[i], x1[i]);
             const f64x2 y(y0[i], y1[i]);
-            local_sum += x * y;
+            scalar_sum += x * y;
         }
+        scalar_sum += vsum(vector_sum);
 #pragma omp critical
-        { result += local_sum; }
+        { result += scalar_sum; }
     }
     return result;
 }
@@ -137,17 +151,26 @@ static f64x3 dot(const double *x0, const double *x1, const double *x2,
     f64x3 result = 0.0;
 #pragma omp parallel
     {
-        f64x3 local_sum = 0.0;
+        f64x3 scalar_sum = 0.0;
+        v8f64x3 vector_sum = 0.0;
         const std::pair<std::size_t, std::size_t> range =
             split_range(n, omp_get_num_threads(), omp_get_thread_num());
-#pragma omp simd simdlen(8) reduction(+ : local_sum)
-        for (std::size_t i = range.first; i < range.second; ++i) {
+        std::size_t i = range.first;
+        for (; i + 8 <= range.second; i += 8) {
+            const v8f64x3 x(_mm512_loadu_pd(x0 + i), _mm512_loadu_pd(x1 + i),
+                            _mm512_loadu_pd(x2 + i));
+            const v8f64x3 y(_mm512_loadu_pd(y0 + i), _mm512_loadu_pd(y1 + i),
+                            _mm512_loadu_pd(y2 + i));
+            vector_sum += x * y;
+        }
+        for (; i < range.second; ++i) {
             const f64x3 x(x0[i], x1[i], x2[i]);
             const f64x3 y(y0[i], y1[i], y2[i]);
-            local_sum += x * y;
+            scalar_sum += x * y;
         }
+        scalar_sum += vsum(vector_sum);
 #pragma omp critical
-        { result += local_sum; }
+        { result += scalar_sum; }
     }
     return result;
 }
@@ -158,17 +181,26 @@ static f64x4 dot(const double *x0, const double *x1, const double *x2,
     f64x4 result = 0.0;
 #pragma omp parallel
     {
-        f64x4 local_sum = 0.0;
+        f64x4 scalar_sum = 0.0;
+        v8f64x4 vector_sum = 0.0;
         const std::pair<std::size_t, std::size_t> range =
             split_range(n, omp_get_num_threads(), omp_get_thread_num());
-#pragma omp simd simdlen(8) reduction(+ : local_sum)
-        for (std::size_t i = range.first; i < range.second; ++i) {
+        std::size_t i = range.first;
+        for (; i + 8 <= range.second; i += 8) {
+            const v8f64x4 x(_mm512_loadu_pd(x0 + i), _mm512_loadu_pd(x1 + i),
+                            _mm512_loadu_pd(x2 + i), _mm512_loadu_pd(x3 + i));
+            const v8f64x4 y(_mm512_loadu_pd(y0 + i), _mm512_loadu_pd(y1 + i),
+                            _mm512_loadu_pd(y2 + i), _mm512_loadu_pd(y3 + i));
+            vector_sum += x * y;
+        }
+        for (; i < range.second; ++i) {
             const f64x4 x(x0[i], x1[i], x2[i], x3[i]);
             const f64x4 y(y0[i], y1[i], y2[i], y3[i]);
-            local_sum += x * y;
+            scalar_sum += x * y;
         }
+        scalar_sum += vsum(vector_sum);
 #pragma omp critical
-        { result += local_sum; }
+        { result += scalar_sum; }
     }
     return result;
 }

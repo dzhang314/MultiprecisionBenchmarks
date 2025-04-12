@@ -1,10 +1,14 @@
 #ifndef MULTIFLOATS_HPP_INCLUDED
 #define MULTIFLOATS_HPP_INCLUDED
 
+#include <emmintrin.h>
+#include <immintrin.h>
+#include <smmintrin.h>
 #include <tuple>
+#include <type_traits>
 
 template <typename T>
-constexpr std::tuple<T, T> two_sum(T a, T b) {
+static constexpr std::tuple<T, T> two_sum(const T a, const T b) {
     const T s = a + b;
     const T a_prime = s - b;
     const T b_prime = s - a_prime;
@@ -15,192 +19,274 @@ constexpr std::tuple<T, T> two_sum(T a, T b) {
 }
 
 template <typename T>
-constexpr std::tuple<T, T> fast_two_sum(T a, T b) {
+static constexpr std::tuple<T, T> fast_two_sum(const T a, const T b) {
     const T s = a + b;
     const T b_prime = s - a;
     const T e = b - b_prime;
     return {s, e};
 }
 
-template <typename T>
-constexpr std::tuple<T, T> two_prod(T a, T b) {
-    const T p = a * b;
-    const T e = __builtin_fma(a, b, -p);
+static inline std::tuple<double, double> two_prod(const double a,
+                                                  const double b) {
+    const double p = a * b;
+    const double e = __builtin_fma(a, b, -p);
     return {p, e};
 }
 
-struct f64x1 {
-    double _limbs[1];
-    constexpr f64x1() : _limbs{0.0} {}
-    constexpr f64x1(double x) : _limbs{x} {}
-    constexpr bool operator==(double rhs) const { return _limbs[0] == rhs; }
-};
-
-constexpr f64x1 operator+(const f64x1 x, const f64x1 y) {
-    const double a = x._limbs[0];
-    const double b = y._limbs[0];
-    return f64x1{a + b};
+static inline std::tuple<__m128d, __m128d> two_prod(const __m128d a,
+                                                    const __m128d b) {
+    const __m128d p = _mm_mul_pd(a, b);
+    const __m128d e = _mm_fmsub_pd(a, b, p);
+    return {p, e};
 }
 
-constexpr f64x1 &operator+=(f64x1 &x, const f64x1 y) {
-    x = x + y;
+static inline std::tuple<__m256d, __m256d> two_prod(const __m256d a,
+                                                    const __m256d b) {
+    const __m256d p = _mm256_mul_pd(a, b);
+    const __m256d e = _mm256_fmsub_pd(a, b, p);
+    return {p, e};
+}
+
+static inline std::tuple<__m512d, __m512d> two_prod(const __m512d a,
+                                                    const __m512d b) {
+    const __m512d p = _mm512_mul_pd(a, b);
+    const __m512d e = _mm512_fmsub_pd(a, b, p);
+    return {p, e};
+}
+
+template <typename T>
+static constexpr T zero();
+
+template <>
+constexpr double zero<double>() {
+    return 0.0;
+}
+
+template <>
+inline __m128d zero<__m128d>() {
+    return _mm_setzero_pd();
+}
+
+template <>
+inline __m256d zero<__m256d>() {
+    return _mm256_setzero_pd();
+}
+
+template <>
+inline __m512d zero<__m512d>() {
+    return _mm512_setzero_pd();
+}
+
+template <typename T>
+static constexpr T from_scalar(const double x);
+
+template <>
+constexpr double from_scalar(const double x) {
     return x;
 }
 
-#pragma omp declare reduction(+ : f64x1 : omp_out += omp_in)
-
-constexpr f64x1 operator*(const f64x1 x, const f64x1 y) {
-    const double a = x._limbs[0];
-    const double b = y._limbs[0];
-    return f64x1{a * b};
+template <>
+inline __m128d from_scalar(const double x) {
+    return _mm_set1_pd(x);
 }
 
-constexpr f64x1 &operator*=(f64x1 &x, const f64x1 y) {
-    x = x * y;
-    return x;
+template <>
+inline __m256d from_scalar(const double x) {
+    return _mm256_set1_pd(x);
 }
 
-struct f64x2 {
-    double _limbs[2];
-    constexpr f64x2() : _limbs{0.0, 0.0} {}
-    constexpr f64x2(double x) : _limbs{x, 0.0} {}
-    constexpr f64x2(double x0, double x1) : _limbs{x0, x1} {}
-    constexpr bool operator==(double rhs) const {
-        return (_limbs[0] == rhs) & (_limbs[1] == 0.0);
+template <>
+inline __m512d from_scalar(const double x) {
+    return _mm512_set1_pd(x);
+}
+
+template <typename T, int N>
+struct MultiFloat {
+
+    T _limbs[N];
+
+    constexpr MultiFloat() : _limbs{} {
+        for (int i = 0; i < N; ++i) { _limbs[i] = zero<T>(); }
     }
-};
 
-constexpr f64x2 operator+(const f64x2 x, const f64x2 y) {
-    const double a = x._limbs[0];
-    const double b = y._limbs[0];
-    const double c = x._limbs[1];
-    const double d = y._limbs[1];
+    constexpr MultiFloat(const double x) : _limbs{} {
+        _limbs[0] = from_scalar<T>(x);
+        for (int i = 1; i < N; ++i) { _limbs[i] = zero<T>(); }
+    }
+
+    template <typename... Args, typename = std::enable_if_t<
+                                    (sizeof...(Args) == N) &&
+                                    (std::is_convertible_v<Args, T> && ...)>>
+    constexpr MultiFloat(Args &&...args)
+        : _limbs{static_cast<T>(std::forward<Args>(args))...} {}
+
+    constexpr bool operator==(const T rhs) const {
+        bool result = true;
+        result &= (_limbs[0] == rhs);
+        for (int i = 1; i < N; ++i) { result &= (_limbs[i] == zero<T>()); }
+        return result;
+    }
+
+    constexpr MultiFloat &operator+=(const MultiFloat rhs) {
+        *this = *this + rhs;
+        return *this;
+    }
+
+    constexpr MultiFloat &operator*=(const MultiFloat rhs) {
+        *this = *this * rhs;
+        return *this;
+    }
+
+}; // struct MultiFloat<T, N>
+
+template <int N>
+static constexpr MultiFloat<double, N> vsum(const MultiFloat<__m128d, N> x) {
+    MultiFloat<double, N> lo;
+    for (int i = 0; i < N; ++i) { lo._limbs[i] = _mm_cvtsd_f64(x._limbs[i]); }
+    MultiFloat<double, N> hi;
+    for (int i = 0; i < N; ++i) {
+        hi._limbs[i] = _mm_cvtsd_f64(_mm_unpackhi_pd(x._limbs[i], x._limbs[i]));
+    }
+    return lo + hi;
+}
+
+template <int N>
+static constexpr MultiFloat<double, N> vsum(const MultiFloat<__m256d, N> x) {
+    MultiFloat<__m128d, N> lo;
+    for (int i = 0; i < N; ++i) {
+        lo._limbs[i] = _mm256_extractf64x2_pd(x._limbs[i], 0);
+    }
+    MultiFloat<__m128d, N> hi;
+    for (int i = 0; i < N; ++i) {
+        hi._limbs[i] = _mm256_extractf64x2_pd(x._limbs[i], 1);
+    }
+    return vsum(lo + hi);
+}
+
+template <int N>
+static constexpr MultiFloat<double, N> vsum(const MultiFloat<__m512d, N> x) {
+    MultiFloat<__m256d, N> lo;
+    for (int i = 0; i < N; ++i) {
+        lo._limbs[i] = _mm512_extractf64x4_pd(x._limbs[i], 0);
+    }
+    MultiFloat<__m256d, N> hi;
+    for (int i = 0; i < N; ++i) {
+        hi._limbs[i] = _mm512_extractf64x4_pd(x._limbs[i], 1);
+    }
+    return vsum(lo + hi);
+}
+
+template <typename T>
+static constexpr MultiFloat<T, 1> operator+(const MultiFloat<T, 1> x,
+                                            const MultiFloat<T, 1> y) {
+    const T a = x._limbs[0];
+    const T b = y._limbs[0];
+    return MultiFloat<T, 1>{a + b};
+}
+
+template <typename T>
+static constexpr MultiFloat<T, 1> operator*(const MultiFloat<T, 1> x,
+                                            const MultiFloat<T, 1> y) {
+    const T a = x._limbs[0];
+    const T b = y._limbs[0];
+    return MultiFloat<T, 1>{a * b};
+}
+
+template <typename T>
+static constexpr MultiFloat<T, 2> operator+(const MultiFloat<T, 2> x,
+                                            const MultiFloat<T, 2> y) {
+    const T a = x._limbs[0];
+    const T b = y._limbs[0];
+    const T c = x._limbs[1];
+    const T d = y._limbs[1];
     const auto [a1, b1] = two_sum(a, b);
     const auto [c1, d1] = two_sum(c, d);
     const auto [a2, c2] = fast_two_sum(a1, c1);
-    const double b2 = b1 + d1;
-    const double b3 = b2 + c2;
+    const T b2 = b1 + d1;
+    const T b3 = b2 + c2;
     const auto [a4, b4] = fast_two_sum(a2, b3);
-    return f64x2{a4, b4};
+    return MultiFloat<T, 2>{a4, b4};
 }
 
-constexpr f64x2 &operator+=(f64x2 &x, const f64x2 y) {
-    x = x + y;
-    return x;
-}
-
-#pragma omp declare reduction(+ : f64x2 : omp_out += omp_in)
-
-constexpr f64x2 operator*(const f64x2 x, const f64x2 y) {
+template <typename T>
+static constexpr MultiFloat<T, 2> operator*(const MultiFloat<T, 2> x,
+                                            const MultiFloat<T, 2> y) {
     const auto [a, b] = two_prod(x._limbs[0], y._limbs[0]);
-    const double c = x._limbs[0] * y._limbs[1];
-    const double d = x._limbs[1] * y._limbs[0];
-    const double c1 = c + d;
-    const double b2 = b + c1;
+    const T c = x._limbs[0] * y._limbs[1];
+    const T d = x._limbs[1] * y._limbs[0];
+    const T c1 = c + d;
+    const T b2 = b + c1;
     const auto [a3, b3] = fast_two_sum(a, b2);
-    return f64x2{a3, b3};
+    return MultiFloat<T, 2>{a3, b3};
 }
 
-constexpr f64x2 &operator*=(f64x2 &x, const f64x2 y) {
-    x = x * y;
-    return x;
-}
-
-struct f64x3 {
-    double _limbs[3];
-    constexpr f64x3() : _limbs{0.0, 0.0, 0.0} {}
-    constexpr f64x3(double x) : _limbs{x, 0.0, 0.0} {}
-    constexpr f64x3(double x0, double x1, double x2) : _limbs{x0, x1, x2} {}
-    constexpr bool operator==(double rhs) const {
-        return (_limbs[0] == rhs) & (_limbs[1] == 0.0) & (_limbs[2] == 0.0);
-    }
-};
-
-constexpr f64x3 operator+(const f64x3 x, const f64x3 y) {
-    const double a = x._limbs[0];
-    const double b = y._limbs[0];
-    const double c = x._limbs[1];
-    const double d = y._limbs[1];
-    const double e = x._limbs[2];
-    const double f = y._limbs[2];
+template <typename T>
+static constexpr MultiFloat<T, 3> operator+(const MultiFloat<T, 3> x,
+                                            const MultiFloat<T, 3> y) {
+    const T a = x._limbs[0];
+    const T b = y._limbs[0];
+    const T c = x._limbs[1];
+    const T d = y._limbs[1];
+    const T e = x._limbs[2];
+    const T f = y._limbs[2];
     const auto [a1, b1] = two_sum(a, b);
     const auto [c1, d1] = two_sum(c, d);
     const auto [e1, f1] = two_sum(e, f);
     const auto [a2, c2] = fast_two_sum(a1, c1);
-    const double b2 = b1 + f1;
+    const T b2 = b1 + f1;
     const auto [d2, e2] = two_sum(d1, e1);
     const auto [a3, d3] = fast_two_sum(a2, d2);
     const auto [b3, c3] = two_sum(b2, c2);
-    const double c4 = c3 + e2;
+    const T c4 = c3 + e2;
     const auto [c5, d5] = two_sum(c4, d3);
     const auto [b6, c6] = two_sum(b3, c5);
     const auto [a7, b7] = fast_two_sum(a3, b6);
-    const double c7 = c6 + d5;
+    const T c7 = c6 + d5;
     const auto [b8, c8] = fast_two_sum(b7, c7);
-    return f64x3{a7, b8, c8};
+    return MultiFloat<T, 3>{a7, b8, c8};
 }
 
-constexpr f64x3 &operator+=(f64x3 &x, const f64x3 y) {
-    x = x + y;
-    return x;
-}
-
-#pragma omp declare reduction(+ : f64x3 : omp_out += omp_in)
-
-constexpr f64x3 operator*(const f64x3 x, const f64x3 y) {
+template <typename T>
+static constexpr MultiFloat<T, 3> operator*(const MultiFloat<T, 3> x,
+                                            const MultiFloat<T, 3> y) {
     const auto [a, b] = two_prod(x._limbs[0], y._limbs[0]);
     const auto [c, e] = two_prod(x._limbs[0], y._limbs[1]);
     const auto [d, f] = two_prod(x._limbs[1], y._limbs[0]);
-    const double g = x._limbs[0] * y._limbs[2];
-    const double h = x._limbs[1] * y._limbs[1];
-    const double i = x._limbs[2] * y._limbs[0];
+    const T g = x._limbs[0] * y._limbs[2];
+    const T h = x._limbs[1] * y._limbs[1];
+    const T i = x._limbs[2] * y._limbs[0];
     const auto [c1, d1] = two_sum(c, d);
-    const double e1 = e + f;
-    const double g1 = g + i;
+    const T e1 = e + f;
+    const T g1 = g + i;
     const auto [b2, c2] = two_sum(b, c1);
-    const double g2 = g1 + h;
+    const T g2 = g1 + h;
     const auto [a3, b3] = fast_two_sum(a, b2);
-    const double c3 = c2 + d1;
-    const double e3 = e1 + g2;
-    const double c4 = c3 + e3;
+    const T c3 = c2 + d1;
+    const T e3 = e1 + g2;
+    const T c4 = c3 + e3;
     const auto [b5, c5] = fast_two_sum(b3, c4);
     const auto [a6, b6] = fast_two_sum(a3, b5);
     const auto [b7, c7] = fast_two_sum(b6, c5);
-    return f64x3{a6, b7, c7};
+    return MultiFloat<T, 3>{a6, b7, c7};
 }
 
-constexpr f64x3 &operator*=(f64x3 &x, const f64x3 y) {
-    x = x * y;
-    return x;
-}
-
-struct f64x4 {
-    double _limbs[4];
-    constexpr f64x4() : _limbs{0.0, 0.0, 0.0, 0.0} {}
-    constexpr f64x4(double x) : _limbs{x, 0.0, 0.0, 0.0} {}
-    constexpr f64x4(double x0, double x1, double x2, double x3)
-        : _limbs{x0, x1, x2, x3} {}
-    constexpr bool operator==(double rhs) const {
-        return (_limbs[0] == rhs) & (_limbs[1] == 0.0) & (_limbs[2] == 0.0) &
-               (_limbs[3] == 0.0);
-    }
-};
-
-constexpr f64x4 operator+(const f64x4 x, const f64x4 y) {
-    const double a = x._limbs[0];
-    const double b = y._limbs[0];
-    const double c = x._limbs[1];
-    const double d = y._limbs[1];
-    const double e = x._limbs[2];
-    const double f = y._limbs[2];
-    const double g = x._limbs[3];
-    const double h = y._limbs[3];
+template <typename T>
+static constexpr MultiFloat<T, 4> operator+(const MultiFloat<T, 4> x,
+                                            const MultiFloat<T, 4> y) {
+    const T a = x._limbs[0];
+    const T b = y._limbs[0];
+    const T c = x._limbs[1];
+    const T d = y._limbs[1];
+    const T e = x._limbs[2];
+    const T f = y._limbs[2];
+    const T g = x._limbs[3];
+    const T h = y._limbs[3];
     const auto [a1, b1] = two_sum(a, b);
     const auto [c1, d1] = two_sum(c, d);
     const auto [e1, f1] = two_sum(e, f);
     const auto [g1, h1] = two_sum(g, h);
     const auto [a2, c2] = fast_two_sum(a1, c1);
-    const double b2 = b1 + h1;
+    const T b2 = b1 + h1;
     const auto [d2, e2] = two_sum(d1, e1);
     const auto [f2, g2] = two_sum(f1, g1);
     const auto [b3, g3] = two_sum(b2, g2);
@@ -209,72 +295,79 @@ constexpr f64x4 operator+(const f64x4 x, const f64x4 y) {
     const auto [a4, c4] = fast_two_sum(a2, c3);
     const auto [d4, e4] = fast_two_sum(d3, e3);
     const auto [b5, d5] = two_sum(b3, d4);
-    const double e5 = e4 + f3;
+    const T e5 = e4 + f3;
     const auto [b6, c6] = two_sum(b5, c4);
     const auto [d6, e6] = two_sum(d5, e5);
     const auto [a7, b7] = fast_two_sum(a4, b6);
     const auto [c7, d7] = fast_two_sum(c6, d6);
-    const double e8 = e6 + g3;
+    const T e8 = e6 + g3;
     const auto [b8, c8] = fast_two_sum(b7, c7);
-    const double d9 = d7 + e8;
+    const T d9 = d7 + e8;
     const auto [a10, b10] = fast_two_sum(a7, b8);
     const auto [c10, d10] = fast_two_sum(c8, d9);
     const auto [b11, c11] = fast_two_sum(b10, c10);
     const auto [c12, d12] = fast_two_sum(c11, d10);
-    return f64x4{a10, b11, c12, d12};
+    return MultiFloat<T, 4>{a10, b11, c12, d12};
 }
 
-constexpr f64x4 &operator+=(f64x4 &x, const f64x4 y) {
-    x = x + y;
-    return x;
-}
-
-#pragma omp declare reduction(+ : f64x4 : omp_out += omp_in)
-
-constexpr f64x4 operator*(const f64x4 x, const f64x4 y) {
+template <typename T>
+static constexpr MultiFloat<T, 4> operator*(const MultiFloat<T, 4> x,
+                                            const MultiFloat<T, 4> y) {
     const auto [a, b] = two_prod(x._limbs[0], y._limbs[0]);
     const auto [c, e] = two_prod(x._limbs[0], y._limbs[1]);
     const auto [d, f] = two_prod(x._limbs[1], y._limbs[0]);
     const auto [g, j] = two_prod(x._limbs[0], y._limbs[2]);
     const auto [h, k] = two_prod(x._limbs[1], y._limbs[1]);
     const auto [i, l] = two_prod(x._limbs[2], y._limbs[0]);
-    const double m = x._limbs[0] * y._limbs[3];
-    const double n = x._limbs[1] * y._limbs[2];
-    const double o = x._limbs[2] * y._limbs[1];
-    const double p = x._limbs[3] * y._limbs[0];
+    const T m = x._limbs[0] * y._limbs[3];
+    const T n = x._limbs[1] * y._limbs[2];
+    const T o = x._limbs[2] * y._limbs[1];
+    const T p = x._limbs[3] * y._limbs[0];
     const auto [c1, d1] = two_sum(c, d);
     const auto [e1, f1] = two_sum(e, f);
     const auto [g1, i1] = two_sum(g, i);
-    const double j1 = j + l;
-    const double m1 = m + p;
-    const double n1 = n + o;
+    const T j1 = j + l;
+    const T m1 = m + p;
+    const T n1 = n + o;
     const auto [b2, c2] = two_sum(b, c1);
     const auto [e2, h2] = two_sum(e1, h);
-    const double f2 = f1 + j1;
-    const double i2 = i1 + k;
-    const double m2 = m1 + n1;
+    const T f2 = f1 + j1;
+    const T i2 = i1 + k;
+    const T m2 = m1 + n1;
     const auto [a3, b3] = fast_two_sum(a, b2);
     const auto [c3, d3] = fast_two_sum(c2, d1);
     const auto [e3, g3] = two_sum(e2, g1);
-    const double f3 = f2 + m2;
-    const double h3 = h2 + i2;
+    const T f3 = f2 + m2;
+    const T h3 = h2 + i2;
     const auto [c4, e4] = two_sum(c3, e3);
-    const double d4 = d3 + h3;
-    const double f4 = f3 + g3;
-    const double d5 = d4 + e4;
+    const T d4 = d3 + h3;
+    const T f4 = f3 + g3;
+    const T d5 = d4 + e4;
     const auto [c6, d6] = two_sum(c4, d5);
     const auto [b7, c7] = two_sum(b3, c6);
-    const double d7 = d6 + f4;
+    const T d7 = d6 + f4;
     const auto [a8, b8] = fast_two_sum(a3, b7);
     const auto [c8, d8] = two_sum(c7, d7);
     const auto [b9, c9] = two_sum(b8, c8);
     const auto [c10, d10] = fast_two_sum(c9, d8);
-    return f64x4{a8, b9, c10, d10};
+    return MultiFloat<T, 4>{a8, b9, c10, d10};
 }
 
-constexpr f64x4 &operator*=(f64x4 &x, const f64x4 y) {
-    x = x * y;
-    return x;
-}
+using f64x1 = MultiFloat<double, 1>;
+using f64x2 = MultiFloat<double, 2>;
+using f64x3 = MultiFloat<double, 3>;
+using f64x4 = MultiFloat<double, 4>;
+using v2f64x1 = MultiFloat<__m128d, 1>;
+using v2f64x2 = MultiFloat<__m128d, 2>;
+using v2f64x3 = MultiFloat<__m128d, 3>;
+using v2f64x4 = MultiFloat<__m128d, 4>;
+using v4f64x1 = MultiFloat<__m256d, 1>;
+using v4f64x2 = MultiFloat<__m256d, 2>;
+using v4f64x3 = MultiFloat<__m256d, 3>;
+using v4f64x4 = MultiFloat<__m256d, 4>;
+using v8f64x1 = MultiFloat<__m512d, 1>;
+using v8f64x2 = MultiFloat<__m512d, 2>;
+using v8f64x3 = MultiFloat<__m512d, 3>;
+using v8f64x4 = MultiFloat<__m512d, 4>;
 
 #endif // MULTIFLOATS_HPP_INCLUDED
