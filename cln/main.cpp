@@ -28,7 +28,7 @@ static cln::cl_F dot(const cln::cl_F *x, const cln::cl_F *y, std::size_t n,
 }
 
 static void gemv(cln::cl_F *y, const cln::cl_F *A, const cln::cl_F *x,
-                 std::size_t n, cln::float_format_t format) {
+                 std::size_t n) {
 #pragma omp parallel
     {
 #pragma omp for schedule(static)
@@ -39,10 +39,9 @@ static void gemv(cln::cl_F *y, const cln::cl_F *A, const cln::cl_F *x,
 }
 
 static void gemm(cln::cl_F *C, const cln::cl_F *A, const cln::cl_F *B,
-                 std::size_t n, cln::float_format_t format) {
+                 std::size_t n) {
 #pragma omp parallel
     {
-        cln::cl_F temp;
 #pragma omp for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
             for (std::size_t k = 0; k < n; ++k) {
@@ -141,7 +140,7 @@ static void gemv_bench(benchmark::State &bs, cln::float_format_t format) {
             y[i] = cln::cl_float(0.0, format);
         }
         const auto start = std::chrono::high_resolution_clock::now();
-        gemv(y.data(), A.data(), x.data(), n, format);
+        gemv(y.data(), A.data(), x.data(), n);
         const auto stop = std::chrono::high_resolution_clock::now();
         bs.SetIterationTime(
             std::chrono::duration<double>(stop - start).count());
@@ -182,7 +181,7 @@ static void gemm_bench(benchmark::State &bs, cln::float_format_t format) {
             C[i] = cln::cl_float(0.0, format);
         }
         const auto start = std::chrono::high_resolution_clock::now();
-        gemm(C.data(), A.data(), B.data(), n, format);
+        gemm(C.data(), A.data(), B.data(), n);
         const auto stop = std::chrono::high_resolution_clock::now();
         bs.SetIterationTime(
             std::chrono::duration<double>(stop - start).count());
