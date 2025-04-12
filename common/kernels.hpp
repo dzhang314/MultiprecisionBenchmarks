@@ -12,6 +12,20 @@ static inline void axpy(T *y, T a, const T *x, std::size_t n) {
 }
 
 template <typename T>
+static inline T dot(const T *x, const T *y, std::size_t n) {
+    T result = static_cast<T>(0.0);
+#pragma omp parallel
+    {
+        T local_sum = static_cast<T>(0);
+#pragma omp for schedule(static)
+        for (std::size_t i = 0; i < n; ++i) { local_sum += x[i] * y[i]; }
+#pragma omp critical
+        { result += local_sum; }
+    }
+    return result;
+}
+
+template <typename T>
 static inline void axpy_bench(benchmark::State &bs) {
 
     const std::size_t n = static_cast<std::size_t>(bs.range(0));
@@ -40,6 +54,38 @@ static inline void axpy_bench(benchmark::State &bs) {
             assert(y[i] == (static_cast<T>(2.5) *
                             static_cast<T>(static_cast<double>(i))));
         }
+    }
+
+    bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
+    bs.SetItemsProcessed(static_cast<std::int64_t>(n) * bs.iterations());
+
+    std::free(x);
+    std::free(y);
+}
+
+template <typename T>
+static inline void dot_bench(benchmark::State &bs) {
+
+    const std::size_t n = static_cast<std::size_t>(bs.range(0));
+
+    T *const x = static_cast<T *>(std::malloc(n * sizeof(T)));
+
+#pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < n; ++i) { x[i] = static_cast<T>(1.5); }
+
+    T *const y = static_cast<T *>(std::malloc(n * sizeof(T)));
+
+#pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < n; ++i) { y[i] = static_cast<T>(2.5); }
+
+    for (auto _ : bs) {
+        const auto start = std::chrono::high_resolution_clock::now();
+        const T result = dot(result, x, y, n);
+        const auto stop = std::chrono::high_resolution_clock::now();
+        bs.SetIterationTime(
+            std::chrono::duration<double>(stop - start).count());
+        assert(result ==
+               static_cast<T>(3.75) * static_cast<T>(static_cast<double>(n)));
     }
 
     bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
