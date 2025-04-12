@@ -4,6 +4,8 @@
 
 static void axpy_bench_2(benchmark::State &bs) { axpy_bench<__float128>(bs); }
 static void dot_bench_2(benchmark::State &bs) { dot_bench<__float128>(bs); }
+static void gemv_bench_2(benchmark::State &bs) { gemv_bench<__float128>(bs); }
+static void gemm_bench_2(benchmark::State &bs) { gemm_bench<__float128>(bs); }
 
 BENCHMARK(axpy_bench_2)
     ->UseManualTime()
@@ -19,4 +21,20 @@ BENCHMARK(dot_bench_2)
     ->Repetitions(3)
     ->RangeMultiplier(2)
     ->Range(1L << 8, 1L << 24)
+    ->DisplayAggregatesOnly();
+
+BENCHMARK(gemv_bench_2)
+    ->UseManualTime()
+    ->Complexity(benchmark::oNSquared)
+    ->Repetitions(3)
+    ->RangeMultiplier(2)
+    ->Range(1L << 4, 1L << 12)
+    ->DisplayAggregatesOnly();
+
+BENCHMARK(gemm_bench_2)
+    ->UseManualTime()
+    ->Complexity(benchmark::oNCubed)
+    ->Repetitions(3)
+    ->RangeMultiplier(2)
+    ->Range(1L << 3, 1L << 9)
     ->DisplayAggregatesOnly();
