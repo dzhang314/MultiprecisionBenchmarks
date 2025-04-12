@@ -29,25 +29,19 @@ static cln::cl_F dot(const cln::cl_F *x, const cln::cl_F *y, std::size_t n,
 
 static void gemv(cln::cl_F *y, const cln::cl_F *A, const cln::cl_F *x,
                  std::size_t n) {
-#pragma omp parallel
-    {
-#pragma omp for schedule(static)
-        for (std::size_t i = 0; i < n; ++i) {
-            for (std::size_t j = 0; j < n; ++j) { y[i] += A[i * n + j] * x[j]; }
-        }
+#pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < n; ++i) {
+        for (std::size_t j = 0; j < n; ++j) { y[i] += A[i * n + j] * x[j]; }
     }
 }
 
 static void gemm(cln::cl_F *C, const cln::cl_F *A, const cln::cl_F *B,
                  std::size_t n) {
-#pragma omp parallel
-    {
-#pragma omp for schedule(static)
-        for (std::size_t i = 0; i < n; ++i) {
-            for (std::size_t k = 0; k < n; ++k) {
-                for (std::size_t j = 0; j < n; ++j) {
-                    C[i * n + j] += A[i * n + k] * B[k * n + j];
-                }
+#pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < n; ++i) {
+        for (std::size_t k = 0; k < n; ++k) {
+            for (std::size_t j = 0; j < n; ++j) {
+                C[i * n + j] += A[i * n + k] * B[k * n + j];
             }
         }
     }
@@ -280,98 +274,98 @@ BENCHMARK(axpy_bench_4)
     ->Range(1L << 8, 1L << 24)
     ->DisplayAggregatesOnly();
 
-BENCHMARK(dot_bench_1)
-    ->UseManualTime()
-    ->Complexity(benchmark::oN)
-    ->Repetitions(3)
-    ->RangeMultiplier(2)
-    ->Range(1L << 8, 1L << 24)
-    ->DisplayAggregatesOnly();
+// BENCHMARK(dot_bench_1)
+//     ->UseManualTime()
+//     ->Complexity(benchmark::oN)
+//     ->Repetitions(3)
+//     ->RangeMultiplier(2)
+//     ->Range(1L << 8, 1L << 24)
+//     ->DisplayAggregatesOnly();
 
-BENCHMARK(dot_bench_2)
-    ->UseManualTime()
-    ->Complexity(benchmark::oN)
-    ->Repetitions(3)
-    ->RangeMultiplier(2)
-    ->Range(1L << 8, 1L << 24)
-    ->DisplayAggregatesOnly();
+// BENCHMARK(dot_bench_2)
+//     ->UseManualTime()
+//     ->Complexity(benchmark::oN)
+//     ->Repetitions(3)
+//     ->RangeMultiplier(2)
+//     ->Range(1L << 8, 1L << 24)
+//     ->DisplayAggregatesOnly();
 
-BENCHMARK(dot_bench_3)
-    ->UseManualTime()
-    ->Complexity(benchmark::oN)
-    ->Repetitions(3)
-    ->RangeMultiplier(2)
-    ->Range(1L << 8, 1L << 24)
-    ->DisplayAggregatesOnly();
+// BENCHMARK(dot_bench_3)
+//     ->UseManualTime()
+//     ->Complexity(benchmark::oN)
+//     ->Repetitions(3)
+//     ->RangeMultiplier(2)
+//     ->Range(1L << 8, 1L << 24)
+//     ->DisplayAggregatesOnly();
 
-BENCHMARK(dot_bench_4)
-    ->UseManualTime()
-    ->Complexity(benchmark::oN)
-    ->Repetitions(3)
-    ->RangeMultiplier(2)
-    ->Range(1L << 8, 1L << 24)
-    ->DisplayAggregatesOnly();
+// BENCHMARK(dot_bench_4)
+//     ->UseManualTime()
+//     ->Complexity(benchmark::oN)
+//     ->Repetitions(3)
+//     ->RangeMultiplier(2)
+//     ->Range(1L << 8, 1L << 24)
+//     ->DisplayAggregatesOnly();
 
-BENCHMARK(gemv_bench_1)
-    ->UseManualTime()
-    ->Complexity(benchmark::oNSquared)
-    ->Repetitions(3)
-    ->RangeMultiplier(2)
-    ->Range(1L << 4, 1L << 12)
-    ->DisplayAggregatesOnly();
+// BENCHMARK(gemv_bench_1)
+//     ->UseManualTime()
+//     ->Complexity(benchmark::oNSquared)
+//     ->Repetitions(3)
+//     ->RangeMultiplier(2)
+//     ->Range(1L << 4, 1L << 12)
+//     ->DisplayAggregatesOnly();
 
-BENCHMARK(gemv_bench_2)
-    ->UseManualTime()
-    ->Complexity(benchmark::oNSquared)
-    ->Repetitions(3)
-    ->RangeMultiplier(2)
-    ->Range(1L << 4, 1L << 12)
-    ->DisplayAggregatesOnly();
+// BENCHMARK(gemv_bench_2)
+//     ->UseManualTime()
+//     ->Complexity(benchmark::oNSquared)
+//     ->Repetitions(3)
+//     ->RangeMultiplier(2)
+//     ->Range(1L << 4, 1L << 12)
+//     ->DisplayAggregatesOnly();
 
-BENCHMARK(gemv_bench_3)
-    ->UseManualTime()
-    ->Complexity(benchmark::oNSquared)
-    ->Repetitions(3)
-    ->RangeMultiplier(2)
-    ->Range(1L << 4, 1L << 12)
-    ->DisplayAggregatesOnly();
+// BENCHMARK(gemv_bench_3)
+//     ->UseManualTime()
+//     ->Complexity(benchmark::oNSquared)
+//     ->Repetitions(3)
+//     ->RangeMultiplier(2)
+//     ->Range(1L << 4, 1L << 12)
+//     ->DisplayAggregatesOnly();
 
-BENCHMARK(gemv_bench_4)
-    ->UseManualTime()
-    ->Complexity(benchmark::oNSquared)
-    ->Repetitions(3)
-    ->RangeMultiplier(2)
-    ->Range(1L << 4, 1L << 12)
-    ->DisplayAggregatesOnly();
+// BENCHMARK(gemv_bench_4)
+//     ->UseManualTime()
+//     ->Complexity(benchmark::oNSquared)
+//     ->Repetitions(3)
+//     ->RangeMultiplier(2)
+//     ->Range(1L << 4, 1L << 12)
+//     ->DisplayAggregatesOnly();
 
-BENCHMARK(gemm_bench_1)
-    ->UseManualTime()
-    ->Complexity(benchmark::oNCubed)
-    ->Repetitions(3)
-    ->RangeMultiplier(2)
-    ->Range(1L << 3, 1L << 9)
-    ->DisplayAggregatesOnly();
+// BENCHMARK(gemm_bench_1)
+//     ->UseManualTime()
+//     ->Complexity(benchmark::oNCubed)
+//     ->Repetitions(3)
+//     ->RangeMultiplier(2)
+//     ->Range(1L << 3, 1L << 9)
+//     ->DisplayAggregatesOnly();
 
-BENCHMARK(gemm_bench_2)
-    ->UseManualTime()
-    ->Complexity(benchmark::oNCubed)
-    ->Repetitions(3)
-    ->RangeMultiplier(2)
-    ->Range(1L << 3, 1L << 9)
-    ->DisplayAggregatesOnly();
+// BENCHMARK(gemm_bench_2)
+//     ->UseManualTime()
+//     ->Complexity(benchmark::oNCubed)
+//     ->Repetitions(3)
+//     ->RangeMultiplier(2)
+//     ->Range(1L << 3, 1L << 9)
+//     ->DisplayAggregatesOnly();
 
-BENCHMARK(gemm_bench_3)
-    ->UseManualTime()
-    ->Complexity(benchmark::oNCubed)
-    ->Repetitions(3)
-    ->RangeMultiplier(2)
-    ->Range(1L << 3, 1L << 9)
-    ->DisplayAggregatesOnly();
+// BENCHMARK(gemm_bench_3)
+//     ->UseManualTime()
+//     ->Complexity(benchmark::oNCubed)
+//     ->Repetitions(3)
+//     ->RangeMultiplier(2)
+//     ->Range(1L << 3, 1L << 9)
+//     ->DisplayAggregatesOnly();
 
-BENCHMARK(gemm_bench_4)
-    ->UseManualTime()
-    ->Complexity(benchmark::oNCubed)
-    ->Repetitions(3)
-    ->RangeMultiplier(2)
-    ->Range(1L << 3, 1L << 9)
-    ->DisplayAggregatesOnly();
+// BENCHMARK(gemm_bench_4)
+//     ->UseManualTime()
+//     ->Complexity(benchmark::oNCubed)
+//     ->Repetitions(3)
+//     ->RangeMultiplier(2)
+//     ->Range(1L << 3, 1L << 9)
+//     ->DisplayAggregatesOnly();
