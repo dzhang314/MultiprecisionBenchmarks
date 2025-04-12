@@ -9,6 +9,7 @@
         "fopenmp",
         "fvisibility",
         "fwhole",
+        "gemv",
         "isystem",
         "lbenchmark",
         "lcln",

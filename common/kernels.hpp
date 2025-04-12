@@ -29,9 +29,7 @@ template <typename T>
 static inline void gemv(T *y, const T *A, const T *x, std::size_t n) {
 #pragma omp parallel for schedule(static)
     for (std::size_t i = 0; i < n; ++i) {
-        T yi = static_cast<T>(0.0);
-        for (std::size_t j = 0; j < n; ++j) { yi += A[i * n + j] * x[j]; }
-        y[i] = yi;
+        for (std::size_t j = 0; j < n; ++j) { y[i] += A[i * n + j] * x[j]; }
     }
 }
 
@@ -39,12 +37,10 @@ template <typename T>
 static inline void gemm(T *C, const T *A, const T *B, std::size_t n) {
 #pragma omp parallel for schedule(static)
     for (std::size_t i = 0; i < n; ++i) {
-        for (std::size_t j = 0; j < n; ++j) {
-            T Cij = static_cast<T>(0.0);
-            for (std::size_t k = 0; k < n; ++k) {
-                Cij += A[i * n + k] * B[k * n + j];
+        for (std::size_t k = 0; k < n; ++k) {
+            for (std::size_t j = 0; j < n; ++j) {
+                C[i * n + j] += A[i * n + k] * B[k * n + j];
             }
-            C[i * n + j] = Cij;
         }
     }
 }
