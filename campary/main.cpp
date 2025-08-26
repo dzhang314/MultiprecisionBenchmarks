@@ -1,5 +1,5 @@
 #include <benchmark/benchmark.h>
-#include <campary/multi_prec.h>
+#include <campary/multi_prec_certif.h>
 
 #include "kernels.hpp"
 
