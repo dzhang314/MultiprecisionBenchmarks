@@ -1,6 +1,7 @@
 #ifndef MULTIFLOATS_HPP_INCLUDED
 #define MULTIFLOATS_HPP_INCLUDED
 
+#include <arm_neon.h>
 #include <tuple>
 #include <type_traits>
 
@@ -30,6 +31,26 @@ static inline std::tuple<double, double> two_prod(const double a,
     return {p, e};
 }
 
+static inline std::tuple<float64x2_t, float64x2_t>
+two_prod(const float64x2_t a, const float64x2_t b) {
+    const float64x2_t p = vmulq_f64(a, b);
+    const float64x2_t e = vfmsq_f64(vnegq_f64(p), a, b);
+    return {p, e};
+}
+
+// 256-bit and 512-bit vectors not directly supported by ARM NEON
+// Use pairs of 128-bit vectors for 256-bit equivalent
+struct float64x4_t {
+    float64x2_t lo, hi;
+};
+
+static inline std::tuple<float64x4_t, float64x4_t>
+two_prod(const float64x4_t a, const float64x4_t b) {
+    const auto [p_lo, e_lo] = two_prod(a.lo, b.lo);
+    const auto [p_hi, e_hi] = two_prod(a.hi, b.hi);
+    return {{p_lo, p_hi}, {e_lo, e_hi}};
+}
+
 template <typename T>
 static constexpr T zero();
 
@@ -38,12 +59,32 @@ constexpr double zero<double>() {
     return 0.0;
 }
 
+template <>
+inline float64x2_t zero<float64x2_t>() {
+    return vdupq_n_f64(0.0);
+}
+
+template <>
+inline float64x4_t zero<float64x4_t>() {
+    return {vdupq_n_f64(0.0), vdupq_n_f64(0.0)};
+}
+
 template <typename T>
 static constexpr T from_scalar(const double x);
 
 template <>
 constexpr double from_scalar(const double x) {
     return x;
+}
+
+template <>
+inline float64x2_t from_scalar(const double x) {
+    return vdupq_n_f64(x);
+}
+
+template <>
+inline float64x4_t from_scalar(const double x) {
+    return {vdupq_n_f64(x), vdupq_n_f64(x)};
 }
 
 template <typename T, int N>
@@ -66,15 +107,6 @@ struct MultiFloat {
     constexpr MultiFloat(Args &&...args)
         : _limbs{static_cast<T>(std::forward<Args>(args))...} {}
 
-    constexpr bool operator==(const MultiFloat rhs) const {
-        for (int i = 0; i < N; ++i) {
-            if (!(_limbs[i] == rhs._limbs[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     constexpr bool operator==(const T rhs) const {
         bool result = true;
         result &= (_limbs[0] == rhs);
@@ -94,12 +126,42 @@ struct MultiFloat {
 
 }; // struct MultiFloat<T, N>
 
+template <int N>
+static constexpr MultiFloat<double, N>
+vsum(const MultiFloat<float64x2_t, N> x) {
+    MultiFloat<double, N> lo;
+    for (int i = 0; i < N; ++i) {
+        lo._limbs[i] = vgetq_lane_f64(x._limbs[i], 0);
+    }
+    MultiFloat<double, N> hi;
+    for (int i = 0; i < N; ++i) {
+        hi._limbs[i] = vgetq_lane_f64(x._limbs[i], 1);
+    }
+    return lo + hi;
+}
+
+template <int N>
+static constexpr MultiFloat<double, N>
+vsum(const MultiFloat<float64x4_t, N> x) {
+    MultiFloat<float64x2_t, N> lo;
+    for (int i = 0; i < N; ++i) { lo._limbs[i] = x._limbs[i].lo; }
+    MultiFloat<float64x2_t, N> hi;
+    for (int i = 0; i < N; ++i) { hi._limbs[i] = x._limbs[i].hi; }
+    return vsum(lo + hi);
+}
+
 template <typename T>
 static constexpr MultiFloat<T, 1> operator+(const MultiFloat<T, 1> x,
                                             const MultiFloat<T, 1> y) {
     const T a = x._limbs[0];
     const T b = y._limbs[0];
-    return MultiFloat<T, 1>{a + b};
+    if constexpr (std::is_same_v<T, float64x2_t>) {
+        return MultiFloat<T, 1>{vaddq_f64(a, b)};
+    } else if constexpr (std::is_same_v<T, float64x4_t>) {
+        return MultiFloat<T, 1>{{vaddq_f64(a.lo, b.lo), vaddq_f64(a.hi, b.hi)}};
+    } else {
+        return MultiFloat<T, 1>{a + b};
+    }
 }
 
 template <typename T>
@@ -107,7 +169,13 @@ static constexpr MultiFloat<T, 1> operator*(const MultiFloat<T, 1> x,
                                             const MultiFloat<T, 1> y) {
     const T a = x._limbs[0];
     const T b = y._limbs[0];
-    return MultiFloat<T, 1>{a * b};
+    if constexpr (std::is_same_v<T, float64x2_t>) {
+        return MultiFloat<T, 1>{vmulq_f64(a, b)};
+    } else if constexpr (std::is_same_v<T, float64x4_t>) {
+        return MultiFloat<T, 1>{{vmulq_f64(a.lo, b.lo), vmulq_f64(a.hi, b.hi)}};
+    } else {
+        return MultiFloat<T, 1>{a * b};
+    }
 }
 
 template <typename T>
@@ -275,5 +343,13 @@ using f64x1 = MultiFloat<double, 1>;
 using f64x2 = MultiFloat<double, 2>;
 using f64x3 = MultiFloat<double, 3>;
 using f64x4 = MultiFloat<double, 4>;
+using v2f64x1 = MultiFloat<float64x2_t, 1>;
+using v2f64x2 = MultiFloat<float64x2_t, 2>;
+using v2f64x3 = MultiFloat<float64x2_t, 3>;
+using v2f64x4 = MultiFloat<float64x2_t, 4>;
+using v4f64x1 = MultiFloat<float64x4_t, 1>;
+using v4f64x2 = MultiFloat<float64x4_t, 2>;
+using v4f64x3 = MultiFloat<float64x4_t, 3>;
+using v4f64x4 = MultiFloat<float64x4_t, 4>;
 
 #endif // MULTIFLOATS_HPP_INCLUDED
