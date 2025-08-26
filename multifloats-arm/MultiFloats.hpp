@@ -31,8 +31,8 @@ static inline std::tuple<double, double> two_prod(const double a,
     return {p, e};
 }
 
-static inline std::tuple<float64x2_t, float64x2_t> two_prod(const float64x2_t a,
-                                                             const float64x2_t b) {
+static inline std::tuple<float64x2_t, float64x2_t>
+two_prod(const float64x2_t a, const float64x2_t b) {
     const float64x2_t p = vmulq_f64(a, b);
     const float64x2_t e = vfmsq_f64(vnegq_f64(p), a, b);
     return {p, e};
@@ -44,8 +44,8 @@ struct float64x4_t {
     float64x2_t lo, hi;
 };
 
-static inline std::tuple<float64x4_t, float64x4_t> two_prod(const float64x4_t a,
-                                                           const float64x4_t b) {
+static inline std::tuple<float64x4_t, float64x4_t>
+two_prod(const float64x4_t a, const float64x4_t b) {
     const auto [p_lo, e_lo] = two_prod(a.lo, b.lo);
     const auto [p_hi, e_hi] = two_prod(a.hi, b.hi);
     return {{p_lo, p_hi}, {e_lo, e_hi}};
@@ -127,9 +127,12 @@ struct MultiFloat {
 }; // struct MultiFloat<T, N>
 
 template <int N>
-static constexpr MultiFloat<double, N> vsum(const MultiFloat<float64x2_t, N> x) {
+static constexpr MultiFloat<double, N>
+vsum(const MultiFloat<float64x2_t, N> x) {
     MultiFloat<double, N> lo;
-    for (int i = 0; i < N; ++i) { lo._limbs[i] = vgetq_lane_f64(x._limbs[i], 0); }
+    for (int i = 0; i < N; ++i) {
+        lo._limbs[i] = vgetq_lane_f64(x._limbs[i], 0);
+    }
     MultiFloat<double, N> hi;
     for (int i = 0; i < N; ++i) {
         hi._limbs[i] = vgetq_lane_f64(x._limbs[i], 1);
@@ -138,15 +141,12 @@ static constexpr MultiFloat<double, N> vsum(const MultiFloat<float64x2_t, N> x) 
 }
 
 template <int N>
-static constexpr MultiFloat<double, N> vsum(const MultiFloat<float64x4_t, N> x) {
+static constexpr MultiFloat<double, N>
+vsum(const MultiFloat<float64x4_t, N> x) {
     MultiFloat<float64x2_t, N> lo;
-    for (int i = 0; i < N; ++i) {
-        lo._limbs[i] = x._limbs[i].lo;
-    }
+    for (int i = 0; i < N; ++i) { lo._limbs[i] = x._limbs[i].lo; }
     MultiFloat<float64x2_t, N> hi;
-    for (int i = 0; i < N; ++i) {
-        hi._limbs[i] = x._limbs[i].hi;
-    }
+    for (int i = 0; i < N; ++i) { hi._limbs[i] = x._limbs[i].hi; }
     return vsum(lo + hi);
 }
 

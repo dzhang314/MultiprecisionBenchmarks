@@ -291,10 +291,9 @@ static void gemv(double *y0, double *y1, double *y2, double *y3,
         for (; j + 2 <= n; j += 2) {
             const v2f64x4 x(vld1q_f64(x0 + j), vld1q_f64(x1 + j),
                             vld1q_f64(x2 + j), vld1q_f64(x3 + j));
-            const v2f64x4 A(vld1q_f64(A0 + i * n + j),
-                            vld1q_f64(A1 + i * n + j),
-                            vld1q_f64(A2 + i * n + j),
-                            vld1q_f64(A3 + i * n + j));
+            const v2f64x4 A(
+                vld1q_f64(A0 + i * n + j), vld1q_f64(A1 + i * n + j),
+                vld1q_f64(A2 + i * n + j), vld1q_f64(A3 + i * n + j));
             vector_sum += A * x;
         }
         for (; j < n; ++j) {
