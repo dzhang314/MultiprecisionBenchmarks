@@ -27,7 +27,7 @@ static void axpy(double *y0, f64x1 a, const double *x0, std::size_t n) {
     {
         const std::pair<std::size_t, std::size_t> range =
             split_range(n, omp_get_num_threads(), omp_get_thread_num());
-#pragma omp simd
+#pragma omp simd simdlen(8)
         for (std::size_t i = range.first; i < range.second; ++i) {
             const f64x1 y(y0[i]);
             const f64x1 x(x0[i]);
@@ -43,7 +43,7 @@ static void axpy(double *y0, double *y1, f64x2 a, const double *x0,
     {
         const std::pair<std::size_t, std::size_t> range =
             split_range(n, omp_get_num_threads(), omp_get_thread_num());
-#pragma omp simd
+#pragma omp simd simdlen(8)
         for (std::size_t i = range.first; i < range.second; ++i) {
             const f64x2 y(y0[i], y1[i]);
             const f64x2 x(x0[i], x1[i]);
@@ -60,7 +60,7 @@ static void axpy(double *y0, double *y1, double *y2, f64x3 a, const double *x0,
     {
         const std::pair<std::size_t, std::size_t> range =
             split_range(n, omp_get_num_threads(), omp_get_thread_num());
-#pragma omp simd
+#pragma omp simd simdlen(8)
         for (std::size_t i = range.first; i < range.second; ++i) {
             const f64x3 y(y0[i], y1[i], y2[i]);
             const f64x3 x(x0[i], x1[i], x2[i]);
@@ -79,7 +79,7 @@ static void axpy(double *y0, double *y1, double *y2, double *y3, f64x4 a,
     {
         const std::pair<std::size_t, std::size_t> range =
             split_range(n, omp_get_num_threads(), omp_get_thread_num());
-#pragma omp simd
+#pragma omp simd simdlen(8)
         for (std::size_t i = range.first; i < range.second; ++i) {
             const f64x4 y(y0[i], y1[i], y2[i], y3[i]);
             const f64x4 x(x0[i], x1[i], x2[i], x3[i]);
@@ -319,7 +319,7 @@ static void gemm(double *C0, const double *A0, const double *B0,
         for (std::size_t i = range.first; i < range.second; ++i) {
             for (std::size_t k = 0; k < n; ++k) {
                 const f64x1 A(A0[i * n + k]);
-#pragma omp simd
+#pragma omp simd simdlen(8)
                 for (std::size_t j = 0; j < n; ++j) {
                     const f64x1 B(B0[k * n + j]);
                     const f64x1 C(C0[i * n + j]);
@@ -340,7 +340,7 @@ static void gemm(double *C0, double *C1, const double *A0, const double *A1,
         for (std::size_t i = range.first; i < range.second; ++i) {
             for (std::size_t k = 0; k < n; ++k) {
                 const f64x2 A(A0[i * n + k], A1[i * n + k]);
-#pragma omp simd
+#pragma omp simd simdlen(8)
                 for (std::size_t j = 0; j < n; ++j) {
                     const f64x2 B(B0[k * n + j], B1[k * n + j]);
                     const f64x2 C(C0[i * n + j], C1[i * n + j]);
@@ -363,7 +363,7 @@ static void gemm(double *C0, double *C1, double *C2, const double *A0,
         for (std::size_t i = range.first; i < range.second; ++i) {
             for (std::size_t k = 0; k < n; ++k) {
                 const f64x3 A(A0[i * n + k], A1[i * n + k], A2[i * n + k]);
-#pragma omp simd
+#pragma omp simd simdlen(8)
                 for (std::size_t j = 0; j < n; ++j) {
                     const f64x3 B(B0[k * n + j], B1[k * n + j], B2[k * n + j]);
                     const f64x3 C(C0[i * n + j], C1[i * n + j], C2[i * n + j]);
@@ -389,7 +389,7 @@ static void gemm(double *C0, double *C1, double *C2, double *C3,
             for (std::size_t k = 0; k < n; ++k) {
                 const f64x4 A(A0[i * n + k], A1[i * n + k], A2[i * n + k],
                               A3[i * n + k]);
-#pragma omp simd
+#pragma omp simd simdlen(8)
                 for (std::size_t j = 0; j < n; ++j) {
                     const f64x4 B(B0[k * n + j], B1[k * n + j], B2[k * n + j],
                                   B3[k * n + j]);
