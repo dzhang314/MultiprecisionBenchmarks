@@ -1,4 +1,3 @@
-#include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
@@ -92,6 +91,7 @@ static void axpy_bench(benchmark::State &bs) {
     arf_t a;
     arf_init(a);
     arf_set_d(a, 0.5);
+    arf_sqrt(a, a, PRECISION, ARF_RND_NEAR);
 
     arf_t *const x = static_cast<arf_t *>(std::malloc(n * sizeof(arf_t)));
     for (std::size_t i = 0; i < n; ++i) { arf_init(x[i]); }
@@ -99,22 +99,20 @@ static void axpy_bench(benchmark::State &bs) {
 #pragma omp parallel for schedule(static)
     for (std::size_t i = 0; i < n; ++i) {
         arf_set_d(x[i], static_cast<double>(i));
+        arf_sqrt(x[i], x[i], PRECISION, ARF_RND_NEAR);
     }
 
     for (auto _ : bs) {
 #pragma omp parallel for schedule(static)
         for (std::size_t i = 0; i < n; ++i) {
             arf_set_d(y[i], 2.0 * static_cast<double>(i));
+            arf_sqrt(y[i], y[i], PRECISION, ARF_RND_NEAR);
         }
         const auto start = std::chrono::high_resolution_clock::now();
         axpy<PRECISION>(y, a, x, n);
         const auto stop = std::chrono::high_resolution_clock::now();
         bs.SetIterationTime(
             std::chrono::duration<double>(stop - start).count());
-#pragma omp parallel for schedule(static)
-        for (std::size_t i = 0; i < n; ++i) {
-            assert(arf_cmp_d(y[i], 2.5 * static_cast<double>(i)) == 0);
-        }
     }
 
     bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
@@ -138,13 +136,19 @@ static void dot_bench(benchmark::State &bs) {
     for (std::size_t i = 0; i < n; ++i) { arf_init(x[i]); }
 
 #pragma omp parallel for schedule(static)
-    for (std::size_t i = 0; i < n; ++i) { arf_set_d(x[i], 1.5); }
+    for (std::size_t i = 0; i < n; ++i) {
+        arf_set_d(x[i], 1.5);
+        arf_sqrt(x[i], x[i], PRECISION, ARF_RND_NEAR);
+    }
 
     arf_t *const y = static_cast<arf_t *>(std::malloc(n * sizeof(arf_t)));
     for (std::size_t i = 0; i < n; ++i) { arf_init(y[i]); }
 
 #pragma omp parallel for schedule(static)
-    for (std::size_t i = 0; i < n; ++i) { arf_set_d(y[i], 2.5); }
+    for (std::size_t i = 0; i < n; ++i) {
+        arf_set_d(y[i], 2.5);
+        arf_sqrt(y[i], y[i], PRECISION, ARF_RND_NEAR);
+    }
 
     arf_t result;
     arf_init(result);
@@ -156,7 +160,6 @@ static void dot_bench(benchmark::State &bs) {
         const auto stop = std::chrono::high_resolution_clock::now();
         bs.SetIterationTime(
             std::chrono::duration<double>(stop - start).count());
-        assert(arf_cmp_d(result, 3.75 * static_cast<double>(n)) == 0);
     }
 
     bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
@@ -183,13 +186,19 @@ static void gemv_bench(benchmark::State &bs) {
     for (std::size_t i = 0; i < n * n; ++i) { arf_init(A[i]); }
 
 #pragma omp parallel for schedule(static)
-    for (std::size_t i = 0; i < n * n; ++i) { arf_set_d(A[i], 1.5); }
+    for (std::size_t i = 0; i < n * n; ++i) {
+        arf_set_d(A[i], 1.5);
+        arf_sqrt(A[i], A[i], PRECISION, ARF_RND_NEAR);
+    }
 
     arf_t *const x = static_cast<arf_t *>(std::malloc(n * sizeof(arf_t)));
     for (std::size_t i = 0; i < n; ++i) { arf_init(x[i]); }
 
 #pragma omp parallel for schedule(static)
-    for (std::size_t i = 0; i < n; ++i) { arf_set_d(x[i], 2.5); }
+    for (std::size_t i = 0; i < n; ++i) {
+        arf_set_d(x[i], 2.5);
+        arf_sqrt(x[i], x[i], PRECISION, ARF_RND_NEAR);
+    }
 
     for (auto _ : bs) {
 #pragma omp parallel for schedule(static)
@@ -199,10 +208,6 @@ static void gemv_bench(benchmark::State &bs) {
         const auto stop = std::chrono::high_resolution_clock::now();
         bs.SetIterationTime(
             std::chrono::duration<double>(stop - start).count());
-#pragma omp parallel for schedule(static)
-        for (std::size_t i = 0; i < n; ++i) {
-            assert(arf_cmp_d(y[i], 3.75 * static_cast<double>(n)) == 0);
-        }
     }
 
     bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
@@ -230,13 +235,19 @@ static void gemm_bench(benchmark::State &bs) {
     for (std::size_t i = 0; i < n * n; ++i) { arf_init(A[i]); }
 
 #pragma omp parallel for schedule(static)
-    for (std::size_t i = 0; i < n * n; ++i) { arf_set_d(A[i], 1.5); }
+    for (std::size_t i = 0; i < n * n; ++i) {
+        arf_set_d(A[i], 1.5);
+        arf_sqrt(A[i], A[i], PRECISION, ARF_RND_NEAR);
+    }
 
     arf_t *const B = static_cast<arf_t *>(std::malloc(n * n * sizeof(arf_t)));
     for (std::size_t i = 0; i < n * n; ++i) { arf_init(B[i]); }
 
 #pragma omp parallel for schedule(static)
-    for (std::size_t i = 0; i < n * n; ++i) { arf_set_d(B[i], 2.5); }
+    for (std::size_t i = 0; i < n * n; ++i) {
+        arf_set_d(B[i], 2.5);
+        arf_sqrt(B[i], B[i], PRECISION, ARF_RND_NEAR);
+    }
 
     for (auto _ : bs) {
 #pragma omp parallel for schedule(static)
@@ -246,10 +257,6 @@ static void gemm_bench(benchmark::State &bs) {
         const auto stop = std::chrono::high_resolution_clock::now();
         bs.SetIterationTime(
             std::chrono::duration<double>(stop - start).count());
-#pragma omp parallel for schedule(static)
-        for (std::size_t i = 0; i < n * n; ++i) {
-            assert(arf_cmp_d(C[i], 3.75 * static_cast<double>(n)) == 0);
-        }
     }
 
     bs.SetComplexityN(static_cast<benchmark::ComplexityN>(n));
